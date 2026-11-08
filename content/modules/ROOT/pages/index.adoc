@@ -119,10 +119,6 @@ Your application namespace and console username are `{lab_user}`. The terminal c
 
 Module 1 uses a healthy, pre-provisioned application. Database initialization and image builds are instructor preparation, outside the timed lab. The module includes a reversible frontend scale operation, six observable checkpoints, and **no injected incident**. The deliberate break/fix story belongs in Module 4.
 
-== Instructor Preparation
-
-xref:module-01-national-parks-instructor.adoc[Prepare National Parks and verify the student experience] before delivering Module 1. The instructor page now starts with a timed run sheet and rehearsal gates. Screenshot replacements are documented in `content/modules/ROOT/images/SCREENSHOTS.md`; the eight PNG placeholders can be overwritten without editing AsciiDoc.
-
 == Reference Material
 
 * https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/release_notes/index[OpenShift 5 release notes].
