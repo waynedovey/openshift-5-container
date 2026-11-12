@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540" width="960" height="540" role="img" aria-labelledby="title desc">
+<title id="title">S04 New Argo CD Application placeholder</title>
+<desc id="desc">Not an actual screenshot. Manual sync, correct repository and namespace</desc>
+<rect width="960" height="540" fill="#f4f6f9"/><rect x="20" y="20" width="920" height="500" rx="15" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="9 7"/>
+<rect x="44" y="48" width="195" height="43" rx="9" fill="#e5edf8"/>
+<text x="58" y="77" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#334155">S04 - Mission 3</text>
+<rect x="304" y="156" width="352" height="60" rx="10" fill="#f0f4f8"/>
+<text x="480" y="193" text-anchor="middle" font-family="Arial,sans-serif" font-size="23" font-weight="700" fill="#64748b">SCREENSHOT NEEDED</text>
+<text x="480" y="278" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" font-weight="700" fill="#172334">New Argo CD Application</text>
+<text x="480" y="322" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" fill="#64748b">Capture authentic OpenShift 5 / GitOps UI evidence</text>
+<line x1="180" y1="374" x2="780" y2="374" stroke="#cbd5e1"/>
+<text x="480" y="410" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#475569">module02-s04-argocd-new-app.png</text>
+<text x="480" y="450" text-anchor="middle" font-family="Arial,sans-serif" font-size="16" fill="#64748b">Instructor screenshot upload pending</text>
+</svg>

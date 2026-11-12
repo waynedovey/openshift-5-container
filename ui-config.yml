@@ -20,3 +20,5 @@ tabs:
     url: 'https://national-parks-app-${USER}-demo.${DOMAIN}'
   - name: ArgoCD
     url: 'https://argocd-server-${USER}-demo.${DOMAIN}'
+  - name: Gitea
+    url: 'https://gitea-${USER}-demo.${DOMAIN}'

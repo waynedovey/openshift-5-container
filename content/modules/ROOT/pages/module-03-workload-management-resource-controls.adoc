@@ -4,7 +4,7 @@
 :experimental:
 :ocp5-release-notes: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/release_notes/index
 
-In Module 1 you recorded a healthy baseline for the three National Parks components. In Module 2 you onboarded their configuration through GitOps and applied a NetworkPolicy. Now you apply resource governance: declare how much compute each container requests and may consume, set namespace-wide defaults and ceilings, and confirm that the platform enforces those boundaries without breaking the application.
+In Module 1 you recovered National Parks. Module 2 introduced manual GitOps synchronization of one safe ConfigMap; it did **not** onboard the Deployments or add a NetworkPolicy. This Module 3 draft needs redesign before workshop delivery, because the original steps assume full GitOps workload ownership and attempt namespace quotas that could conflict with pre-provisioned Argo CD and Gitea resources.
 
 *Estimated time:* 20 minutes
 

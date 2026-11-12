@@ -54,14 +54,14 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | Console deployment draft; test images/builds and recapture screenshots
 
 | xref:module-02-gitops-onboarding-multitenancy.adoc[2 — GitOps Onboarding & Multitenancy]
-| 20 min with starter files
-| Inspect the National Parks GitOps Application, commit a database access policy, and verify application health and API permissions.
-| GitOps adoption instructions must be revised for a console-created app
+| 30 min (rehearsal target)
+| Use OpenShift 5's MCP-based troubleshooting and optional GitOps 1.22 console plug-in; onboard a safe ConfigMap via Gitea/Argo CD, investigate manual sync and verify tenant isolation.
+| Rebuilt: manual sync of one safe National Parks ConfigMap; fresh-student validation required
 
 | xref:module-03-workload-management-resource-controls.adoc[3 — Workload Management & Resource Controls]
 | 20 min
 | Apply quotas and limits, examine platform-managed priorities, and compare configured resources with observed usage.
-| National Parks draft; rehearsal required
+| Requires redesign for existing tenant ClusterResourceQuota and Module 2's ConfigMap-only GitOps scope
 
 | xref:module-04-ai-assisted-incident-investigation.adoc[4 — AI-Assisted Incident Investigation]
 | 40 min
@@ -71,17 +71,17 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | xref:module-05-gitops-remediation-app-lifecycle.adoc[5 — GitOps Remediation & App Lifecycle]
 | 20 min
 | Commit a validated fix, observe reconciliation and rollout health, and confirm recovery.
-| National Parks draft; rehearsal required
+| Requires redesign before full National Parks workloads are GitOps-managed
 |===
 
-*Planned full workshop: approximately 2 hours 20 minutes.* Module 1 targets 50 minutes after registry pull, backend build, student Secret creation, discovery RBAC, a deliberate MongoDB Service port fault, Lightspeed 2.0 read approvals and manual console Service repair have been rehearsed under student identities. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 must be updated to adopt the resources created through the native console.
+*Planned full workshop: approximately 2 hours 40 minutes (pending Module 3/5 redesign).* Module 1 targets 50 minutes after registry pull, backend build, student Secret creation, discovery RBAC, a deliberate MongoDB Service port fault, Lightspeed 2.0 read approvals and manual console Service repair have been rehearsed under student identities. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 introduces GitOps safely using one ConfigMap; full workload onboarding is reserved for a later exercise.
 
 == Release Topics Connected to the Application
 
 [cols="2,3",options="header"]
 |===
 | Topic | Workshop connection
-| Project Felt console design | Experience the updated OpenShift 5 visual style while using familiar navigation.
+| Project Felt console design | Experience the updated OpenShift 5 visual style while using familiar navigation. In Module 2, optionally explore the new Glass, High Contrast and Traditional themes.
 | Kubernetes and runtime foundation | Compare the actual platform release with the documented Kubernetes 1.36 / CRI-O foundation for OpenShift 5.0.
 | MCP server — GA in 5.0 | Use Lightspeed 2.0 Troubleshooting to inspect MongoDB Services, Pods, EndpointSlices and backend logs. Students apply a one-field Service port fix.
 | HAProxy version selection | Check normal ingress behaviour and identify the serving router's `status.effectiveHAProxyVersion`: 3.2 by default, or the supported 2.8 migration option.
@@ -103,7 +103,7 @@ Unified console navigation predates OpenShift 5. The core Module 1 exercise uses
 | Application grouping | Workload and pod labels identify the three National Parks components together.
 | AI integration | Lightspeed Operator 2.0 with live MCP read tools. Students manually repair the MongoDB Service target port; write tools are not required.
 | Observability | Permission to inspect application logs and workload status; additional metrics are used in later modules.
-| GitOps | For Module 2, the instructor must provide a matching Git source of truth and an adoption workflow targeting `{user}-demo`. The present Module 2 guide still assumes prior ownership and may target a different namespace; it requires revision before delivery.
+| GitOps | Tenant bootstrap migrates `openshift-5-container` into each student's Gitea. Module 2 creates a manual-sync Argo CD Application for one safe ConfigMap. Existing National Parks workloads are not adopted into GitOps yet.
 |===
 
 OpenShift console: {openshift_console_url}[Open the console]

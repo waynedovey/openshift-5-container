@@ -2,502 +2,360 @@
 :navtitle: GitOps Onboarding & Multitenancy
 :page-toclevels: 2
 :experimental:
-:ocp5-release-notes: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/release_notes/index
-:ocp5-gitops: https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html-single/gitops/index
 
-In Module 1 you established that *National Parks* is healthy: the map loads, park markers appear, and the data endpoint returns records.
-In this module you will inspect the GitOps configuration that keeps the application in that state, make one declarative change through Argo CD, and verify that both the application and the cluster's access controls behave as expected.
+In Module 1, you repaired the MongoDB Service and got the National Parks map working.
+Now you will use *Gitea*, *Argo CD* and *OpenShift Lightspeed 2.0* to manage a small part of that application's environment through Git.
+
+*Duration:* approximately 30 minutes.
 
 [cols="1,3",options="header"]
 |===
-| Time | Activity
-| 4 minutes | Set context; inspect the Argo CD Application managing National Parks.
-| 5 minutes | Clone the GitOps repository and review the application manifests.
-| 7 minutes | Add a database NetworkPolicy through GitOps, synchronize, and verify.
-| 4 minutes | Verify RBAC isolation between student namespaces.
+| Time | Mission
+| 5 min | Check your student account and ask Lightspeed what is deployed
+| 5 min | Explore your Gitea repository
+| 8 min | Create a manually synchronized Argo CD Application
+| 7 min | Change Git, investigate with Lightspeed and synchronize
+| 5 min | Check namespace isolation and application health
 |===
 
-== Learning Objectives
+[IMPORTANT]
+====
+*Your National Parks application stays running.* This lab manages **one harmless ConfigMap** associated with National Parks, not its Deployments, Secrets, Services or MongoDB settings. Your Module 1 fix will not be overwritten.
 
-* Describe how a Git repository, an Argo CD Application, and a namespace fit together.
-* Read the synchronization status, health, and deployed revision of a live GitOps-managed application.
-* Commit a declarative policy change and observe how Argo CD applies it.
-* Verify that the application remains healthy after the policy is enforced.
-* Distinguish Kubernetes API isolation (RBAC) from application network isolation (NetworkPolicy).
+Argo CD synchronization is **manual**. Lightspeed uses MCP read tools to investigate and explain; **you** make Git and Argo CD changes. No MCP write tools, cluster-admin rights, new namespace or shared Git credentials are required.
+====
 
-== OpenShift 5 Connection
+== What's new in OpenShift 5?
+
+This lab focuses on current OpenShift 5 experiences while using established GitOps and Kubernetes concepts.
 
 [cols="2,3",options="header"]
 |===
-| Topic | Connection to this module
-
-| OpenShift GitOps operator (OLM v1)
-| The Argo CD instance used in this workshop is installed as a `ClusterExtension`. You identified this API in Module 1. The operator lifecycle does not change the Git → cluster synchronization model you use here.
-
-| NetworkPolicy for namespace isolation
-| `NetworkPolicy` is a namespace-scoped control applied to selected pods. This module uses it to restrict database access. `AdminNetworkPolicy`, a cluster-scoped alternative managed by the platform team, is separate and may co-exist; your policy is additive to any platform controls already in place.
-
-| RBAC namespace scoping
-| A `RoleBinding` in your namespace grants access only within that namespace. This module verifies that the boundary holds against a neighboring student namespace.
+| Feature | What you will try
+| *OpenShift 5 console* | Navigate your project and inspect GitOps resources. If enabled, try the new Glass, High Contrast or Traditional console theme.
+| *MCP server for Red Hat OpenShift — GA with OpenShift 5* | Ask Lightspeed 2.0 to use live read-only cluster tools. Inspect the tool evidence before accepting a diagnosis.
+| *OpenShift GitOps 1.22 console plug-in — GA* | If the operator and plug-in are installed, view Argo CD resources directly in the OpenShift console, alongside the standalone Argo CD UI.
+| *GitOps 1.22 Source Hydrator and environment promotions — Technology Preview* | Learn how these relate to Kustomize and Git review. **Do not enable** Technology Preview features in this shared lab.
 |===
-
-NOTE: GitOps, Kubernetes RBAC, and NetworkPolicy are established capabilities used to explore OpenShift 5, not features introduced in this release. Use the installed versions you found in Module 1.
-
-== Before You Begin
-
-You need:
-
-* The authenticated Bash terminal and `$LAB_NAMESPACE` from Module 1.
-* The `oc` and `git` commands available in your terminal.
-* An instructor-provided Argo CD URL, Application name, and Application namespace.
-* A writable workshop Git repository URL and branch.
-* A partner with a different assigned namespace (or an instructor-managed equivalent) for the RBAC isolation exercise.
-
-== Exercise 1: Restore Context (4 Minutes)
-
-If you opened a new terminal since Module 1, restore your namespace and application variables first.
-
-. Restore the namespace and application selector:
-+
-[source,bash,role=execute]
-----
-LAB_NAMESPACE=$(oc whoami 2>/dev/null \
-  | sed 's|system:serviceaccount:||;s|-showroom:.*||')
-: "${LAB_NAMESPACE:?Could not detect namespace — contact your instructor}"
-export LAB_NAMESPACE
-
-APP_SELECTOR='app.kubernetes.io/part-of=national-parks-app'
-export APP_SELECTOR
-
-printf 'Namespace: %s\n' "$LAB_NAMESPACE"
-oc whoami
-----
-+
-Confirm the identity belongs to you.
-
-. Restore the Route URLs:
-+
-[source,bash,role=execute]
-----
-PARKSMAP_HOST=$(oc get route parksmap -n "$LAB_NAMESPACE" \
-  -o jsonpath='{.spec.host}' 2>/dev/null)
-NATIONALPARKS_HOST=$(oc get route nationalparks -n "$LAB_NAMESPACE" \
-  -o jsonpath='{.spec.host}' 2>/dev/null)
-
-PARKSMAP_URL="https://${PARKSMAP_HOST}"
-NATIONALPARKS_URL="https://${NATIONALPARKS_HOST}"
-export PARKSMAP_URL NATIONALPARKS_URL
-
-printf 'Frontend: %s\nBackend:  %s\n' "$PARKSMAP_URL" "$NATIONALPARKS_URL"
-----
-
-. Enter the GitOps details supplied by the instructor.
-Use a repository URL without an embedded password or token:
-+
-[source,bash,role=execute]
-----
-read -r -p "Workshop Git repository URL: " GITOPS_REPO_URL
-read -r -p "Workshop Git branch: " GITOPS_BRANCH
-read -r -p "Namespace containing your Argo CD Application: " ARGOCD_NAMESPACE
-read -r -p "Argo CD Application name: " ARGOCD_APP
-
-: "${GITOPS_REPO_URL:?Repository URL is required}"
-: "${GITOPS_BRANCH:?Branch is required}"
-: "${ARGOCD_NAMESPACE:?Argo CD namespace is required}"
-: "${ARGOCD_APP:?Application name is required}"
-
-export GITOPS_REPO_URL GITOPS_BRANCH ARGOCD_NAMESPACE ARGOCD_APP
-printf 'Repository:  %s\nBranch:      %s\nApplication: %s/%s\n' \
-  "$GITOPS_REPO_URL" "$GITOPS_BRANCH" "$ARGOCD_NAMESPACE" "$ARGOCD_APP"
-----
-
-*Checkpoint:* You have your namespace, URLs, and GitOps coordinates set. The application should still be serving requests from Module 1.
-
-== Exercise 2: Inspect the Argo CD Application (4 Minutes)
-
-The instructor provisioned an Argo CD Application to manage National Parks in your namespace before the workshop. You will read its configuration, not create it.
-
-. Read the Application specification:
-+
-[source,bash,role=execute]
-----
-oc get applications.argoproj.io "$ARGOCD_APP" \
-  -n "$ARGOCD_NAMESPACE" \
-  -o jsonpath='repository={.spec.source.repoURL}{"\n"}branch={.spec.source.targetRevision}{"\n"}path={.spec.source.path}{"\n"}destination={.spec.destination.namespace}{"\n"}project={.spec.project}{"\n"}'
-----
-+
-*Expected:* The repository and branch match what you entered above. The destination matches `$LAB_NAMESPACE`. Record the source path — you will use it when committing your change.
-
-. Check the current synchronization state:
-+
-[source,bash,role=execute]
-----
-oc get applications.argoproj.io "$ARGOCD_APP" \
-  -n "$ARGOCD_NAMESPACE" \
-  -o jsonpath='revision={.status.sync.revision}{"\n"}sync={.status.sync.status}{"\n"}health={.status.health.status}{"\n"}'
-----
-+
-*Expected:* `sync=Synced` and `health=Healthy`. If either is different, note the value but do not attempt to fix it here; the instructor needs to confirm the state before you add a new policy.
-
-. Record the current commit revision:
-+
-[source,bash,role=execute]
-----
-CURRENT_REVISION=$(oc get applications.argoproj.io "$ARGOCD_APP" \
-  -n "$ARGOCD_NAMESPACE" \
-  -o jsonpath='{.status.sync.revision}')
-printf 'Current deployed revision: %s\n' "$CURRENT_REVISION"
-export CURRENT_REVISION
-----
-+
-This is the baseline. After you commit the NetworkPolicy, you will compare the new revision against this value.
-
-. Open the instructor-provided Argo CD URL in the browser and locate your Application. Note the resource graph — it shows the three National Parks Deployments, their ReplicaSets, pods, Services, and Routes all owned by this Application.
-
-*Checkpoint:* The Application is `Synced` and `Healthy`. You have recorded the baseline revision.
-
-== Exercise 3: Clone and Review the GitOps Manifests (5 Minutes)
-
-. Clone the repository on the branch tracked by Argo CD:
-+
-[source,bash,role=execute]
-----
-git clone --branch "$GITOPS_BRANCH" "$GITOPS_REPO_URL" workshop-gitops
-cd workshop-gitops
-git log --oneline -5
-----
-+
-If the clone already exists from a previous attempt, open it and confirm the branch:
-+
-[source,bash,role=execute]
-----
-cd workshop-gitops
-git fetch origin
-git checkout "$GITOPS_BRANCH"
-git pull origin "$GITOPS_BRANCH"
-----
-
-. Locate the National Parks manifests using the source path from Exercise 2:
-+
-[source,bash,role=execute]
-----
-GITOPS_PATH=$(oc get applications.argoproj.io "$ARGOCD_APP" \
-  -n "$ARGOCD_NAMESPACE" \
-  -o jsonpath='{.spec.source.path}')
-export GITOPS_PATH
-printf 'Source path: %s\n' "$GITOPS_PATH"
-ls "$GITOPS_PATH/"
-----
-
-. Review the Kustomize entry point:
-+
-[source,bash,role=execute]
-----
-cat "$GITOPS_PATH/kustomization.yaml"
-----
-+
-Note which resource files are listed. The NetworkPolicy you add will appear here.
-
-. Inspect the Deployment manifests to confirm the pod labels the NetworkPolicy will select:
-+
-[source,bash,role=execute]
-----
-grep -r 'component:' "$GITOPS_PATH/" || \
-  oc get pods -n "$LAB_NAMESPACE" -l "$APP_SELECTOR" \
-    -o jsonpath='{range .items[*]}{.metadata.name}: component={.metadata.labels.component}{"\n"}{end}'
-----
-+
-*Expected:* pods carry a `component` label with values `parksmap`, `nationalparks`, or `mongodb-nationalparks`. The NetworkPolicy in the next exercise uses `component=nationalparks` to select the backend pods as the only permitted source of database traffic.
-
-. Confirm the current state of the application while the repository is still unchanged:
-+
-[source,bash,role=execute]
-----
-curl --fail --silent --show-error --connect-timeout 5 --max-time 15 \
-  -o /dev/null -w 'Frontend status: %{http_code}\n' "$PARKSMAP_URL/"
-curl --fail --silent --show-error --connect-timeout 5 --max-time 15 \
-  -w 'Data records: ' "$NATIONALPARKS_URL/ws/data/all" \
-  | python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d))'
-----
-+
-*Expected:* HTTP `200` and a positive record count. This is your before-policy baseline.
-
-*Checkpoint:* You have the repository cloned, the source path confirmed, and a healthy application baseline recorded.
-
-== Exercise 4: Add the MongoDB NetworkPolicy Through GitOps (7 Minutes)
-
-You will restrict database access so that only the `nationalparks` backend pods in your own namespace can reach `mongodb-nationalparks` on port `27017`. No other pod — including pods from another student's namespace — will be able to reach your database.
-
-. Create the NetworkPolicy manifest in the application directory:
-+
-[source,bash,role=execute]
-----
-cat > "$GITOPS_PATH/mongodb-netpol.yaml" <<'EOF'
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: mongodb-ingress
-spec:
-  podSelector:
-    matchLabels:
-      component: mongodb-nationalparks
-  policyTypes:
-    - Ingress
-  ingress:
-    - from:
-        - podSelector:
-            matchLabels:
-              component: nationalparks
-      ports:
-        - protocol: TCP
-          port: 27017
-EOF
-----
-+
-This policy selects only pods labeled `component=mongodb-nationalparks`.
-Ingress is permitted only from pods in the same namespace labeled `component=nationalparks`, on port `27017`.
-All other inbound connections to the database pods are dropped.
-
-. Add the new file to the Kustomize resource list:
-+
-[source,bash,role=execute]
-----
-python3 - "$GITOPS_PATH/kustomization.yaml" <<'PY'
-import sys, pathlib, re
-
-path = pathlib.Path(sys.argv[1])
-text = path.read_text()
-
-entry = "  - mongodb-netpol.yaml\n"
-if "mongodb-netpol.yaml" in text:
-    print("Already listed — no change made.")
-else:
-    text = re.sub(r'(^resources:\n)', r'\1' + entry, text, flags=re.MULTILINE)
-    path.write_text(text)
-    print("Added mongodb-netpol.yaml to kustomization.yaml")
-PY
-
-cat "$GITOPS_PATH/kustomization.yaml"
-----
-
-. Preview the rendered output before committing:
-+
-[source,bash,role=execute]
-----
-oc kustomize "$GITOPS_PATH"
-----
-+
-Confirm that the NetworkPolicy appears with the correct `podSelector` and `ingress` rule, and that `namespace` in the rendered output matches `$LAB_NAMESPACE`.
-
-. Stage, review, and commit:
-+
-[source,bash,role=execute]
-----
-git add "$GITOPS_PATH/mongodb-netpol.yaml" "$GITOPS_PATH/kustomization.yaml"
-git diff --cached --stat
-git diff --cached
-----
-+
-Confirm the diff contains only the NetworkPolicy and the updated kustomization. No credentials, no namespace override files.
-+
-[source,bash,role=execute]
-----
-git commit -m "Restrict mongodb-nationalparks ingress to nationalparks backend"
-git push origin "$GITOPS_BRANCH"
-EXPECTED_REVISION=$(git rev-parse HEAD)
-printf 'Expected revision: %s\n' "$EXPECTED_REVISION"
-export EXPECTED_REVISION
-----
-
-. In the Argo CD browser UI: open your Application, select *Refresh*, inspect the diff, then select *Sync*.
-If automated sync is enabled, the policy may apply before you select *Sync*. Verify the same revision.
-
-. Confirm synchronization from the terminal:
-+
-[source,bash,role=execute]
-----
-oc get applications.argoproj.io "$ARGOCD_APP" \
-  -n "$ARGOCD_NAMESPACE" \
-  -o jsonpath='revision={.status.sync.revision}{"\n"}sync={.status.sync.status}{"\n"}health={.status.health.status}{"\n"}'
-----
-+
-*Expected:* `revision` matches `$EXPECTED_REVISION`, `sync=Synced`, `health=Healthy`.
-
-. Inspect the installed policy:
-+
-[source,bash,role=execute]
-----
-oc get networkpolicy mongodb-ingress -n "$LAB_NAMESPACE" -o yaml
-----
-
-. Verify the application is still healthy after the policy is enforced:
-+
-[source,bash,role=execute]
-----
-oc rollout status deployment/nationalparks \
-  -n "$LAB_NAMESPACE" --timeout=120s
-
-curl --fail --silent --show-error --connect-timeout 5 --max-time 15 \
-  -o /dev/null -w 'Frontend status: %{http_code}\n' "$PARKSMAP_URL/"
-
-curl --fail --silent --show-error --connect-timeout 5 --max-time 15 \
-  -w 'Data records after policy: ' "$NATIONALPARKS_URL/ws/data/all" \
-  | python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d))'
-----
-+
-*Expected:* HTTP `200` and the same positive record count as before. The backend pod is still labeled `component=nationalparks`, so it remains the permitted source and the database connection is unaffected.
 
 [NOTE]
 ====
-NetworkPolicy rules are additive. If the platform has an `AdminNetworkPolicy` that already permits or denies this traffic, your policy combines with it. Ask the instructor if the test result differs from what this exercise predicts.
+Argo CD, Kustomize, RBAC and manual sync are **not new to OpenShift 5**. The new elements here are how the platform exposes, secures and assists these operations. The optional GitOps console plug-in and appearance themes must be checked on the actual workshop cluster; their availability is not guaranteed by the OpenShift version alone.
 ====
 
-*Checkpoint:* The NetworkPolicy is deployed through Argo CD. The application is `Synced`, `Healthy`, and still serving park data. Your Git revision matches what Argo CD reports.
+[NOTE]
+====
+*Screenshot guide:* The numbered images below are **labelled placeholders**, not captured cluster evidence. Follow the adjacent instructions until your instructor replaces them with real screenshots. See https://github.com/waynedovey/openshift-5-container/blob/docs/module02-gitops-lightspeed-rebuild/content/modules/ROOT/images/MODULE02-SCREENSHOTS.md[Module 2 screenshot checklist] for the final PNG names.
+====
 
-== Exercise 5: Verify RBAC Isolation (4 Minutes)
+== Mission 1: Check the environment with Lightspeed (5 minutes)
 
-The NetworkPolicy you just added controls application-layer traffic. Kubernetes RBAC controls API-layer access. These are independent boundaries. This exercise verifies both in your environment.
-
-. Work with your assigned partner.
-Enter their namespace when prompted:
+. Open the Showroom *Terminal* tab. As in Module 1, authenticate as your assigned student:
 +
-[source,bash,role=execute]
+[source,bash,subs="attributes+"]
 ----
-read -r -p "Partner's assigned namespace: " PEER_NAMESPACE
-: "${PEER_NAMESPACE:?Partner namespace is required}"
-export PEER_NAMESPACE
-printf 'Partner namespace: %s\n' "$PEER_NAMESPACE"
-----
-+
-Confirm that `$PEER_NAMESPACE` differs from `$LAB_NAMESPACE`.
-
-. Test API access to the partner's namespace using your student identity:
-+
-[source,bash,role=execute]
-----
-oc auth can-i list pods -n "$PEER_NAMESPACE"
-oc get pods -n "$PEER_NAMESPACE" 2>&1 | head -3
+oc login {openshift_api_url} -u {user} -p {password}
+oc whoami
+oc project {user}-demo
+oc version
 ----
 +
-*Expected:* `no` from the authorization check, and a `Forbidden` error from the API request. Your `RoleBinding` in `$LAB_NAMESPACE` does not extend to the partner's namespace.
+Expected identity: `{user}`. If you see `system:serviceaccount:...:showroom`, stop and sign in as the student. Using `-p` displays your lab password in shell history; use only this disposable workshop terminal.
 
-. Verify that your own namespace is still readable:
+. Save your project and Application name for later:
 +
-[source,bash,role=execute]
+[source,bash,subs="attributes+"]
 ----
-oc auth can-i list pods -n "$LAB_NAMESPACE"
-oc get pods -n "$LAB_NAMESPACE" -l "$APP_SELECTOR" --no-headers | wc -l
+export LAB_NAMESPACE={user}-demo
+export ARGOCD_NAMESPACE=$LAB_NAMESPACE
+export ARGOCD_APP=national-parks-settings
+oc get deployments -n "$LAB_NAMESPACE" \
+  -l app.kubernetes.io/part-of=national-parks-app
+oc get applications.argoproj.io -n "$LAB_NAMESPACE"
 ----
 +
-*Expected:* `yes` and a positive pod count.
+Your National Parks workloads should be running. It is **normal for the Applications list to be empty**: an Argo CD *instance* is already installed, but the National Parks GitOps Application has not yet been created. The `oc version` output confirms the actual API server release; the intended workshop cluster uses OpenShift 5.
 
-. Record the evidence:
+image::module02-s01-student-context.svg[S01: student terminal context and cluster version - screenshot placeholder, width=850]
+
+. Open *OpenShift Lightspeed* -> *Troubleshooting* and paste:
 +
-[cols="2,1,1",options="header"]
+[source,text,subs="attributes+"]
+----
+Use live Kubernetes tools to inspect the Argo CD instance,
+Applications and ConfigMaps in namespace {user}-demo.
+
+Tell me what GitOps resources already exist and what is missing.
+Do not read Secrets or change anything.
+----
++
+Approve only **read** operations for your own namespace. Expand the MCP tool calls and compare the reported resource names, namespace and status with the terminal output. This is the **OpenShift 5 MCP evidence check**: a diagnosis without verifiable tool results is only a suggestion.
+
+Lightspeed should distinguish the existing Argo CD instance from an Argo CD Application. If the MCP tool cannot read an Argo CD custom resource, use the `oc get` commands above as the source of truth; do not accept an invented resource. The MCP server normally respects Kubernetes identity and RBAC; **do not ask it to bypass permissions**.
+
+image::module02-s02-lightspeed-mcp-inspection.svg[S02: Lightspeed read-only MCP tool evidence - screenshot placeholder, width=850]
+
+*Explore:* Expand an MCP call and identify the **tool name**, **namespace** and **resource names** in the result. Verify these against the Terminal.
+
+*Checkpoint 1:* You can explain the difference between the Argo CD instance and an Application, identify the cluster version and point to a read-only MCP tool result used by Lightspeed.
+
+== Mission 2: Find your GitOps source in Gitea (5 minutes)
+
+Each student has a separate Gitea instance and repository.
+
+. Open Showroom's *Gitea* tab. If it is missing, open *Networking* -> *Routes* in your project and follow the Gitea Route's *Location* link.
+. Sign in using your assigned student Gitea account (typically `{user}`). Gitea credentials may differ from your OpenShift login; the workshop bootstrap defaults are documented by your instructor.
+. Open the repository **`openshift-5-container`**. It is imported into your Gitea instance from the public workshop source.
+. Browse to:
++
+[source,text]
+----
+content/modules/ROOT/examples/module02-gitops/
+  kustomization.yaml
+  national-parks-gitops-info.yaml
+----
+. Open `national-parks-gitops-info.yaml`. The initial message is:
++
+[source,yaml]
+----
+data:
+  message: "GitOps baseline"
+----
+. Select the repository's *Clone* button and copy its **HTTPS** URL. You will paste this into Argo CD. Use the Gitea URL, **not** the GitHub URL. Confirm the repository is public/readable by Argo CD; never embed a password or token in the URL.
+
+[NOTE]
+====
+If `openshift-5-container` or `module02-gitops` is absent, stop and ask your instructor to re-run repository migration **after** this workshop update has been merged. Do not create an empty repository or guess the source path.
+====
+
+[TIP]
+====
+*OpenShift GitOps 1.22 connection:* The `kustomization.yaml` file declares the desired Kubernetes resources. GitOps 1.22 adds *Source Hydrator* and environment promotions as Technology Preview capabilities; this lab uses ordinary Kustomize and a reviewed manual sync instead. Ask Lightspeed what Kustomize does if you need a quick explanation — no tools or cluster changes are needed.
+====
+
+image::module02-s03-gitea-source.svg[S03: student Gitea repository and source files - screenshot placeholder, width=850]
+
+*Try it:* Which folder contains the GitOps manifests? Confirm from Gitea's address bar.
+
+*Checkpoint 2:* You have a real Gitea HTTPS repository URL and can see the two GitOps files.
+
+== Mission 3: Onboard one resource into Argo CD (8 minutes)
+
+. Open Showroom's *ArgoCD* tab. Sign in with *OpenShift* SSO if prompted.
+. Select *+ NEW APP* (or *New App*) and use these values:
+
+[cols="2,3",options="header"]
 |===
-| Check | Result | Boundary type
-
-| List pods in own namespace
-| `yes` / pod count
-| RBAC (API)
-
-| List pods in partner namespace
-| `Forbidden`
-| RBAC (API)
-
-| National Parks data endpoint returns records
-| positive count
-| Application (HTTP)
-
-| MongoDB blocked to non-`nationalparks` pods
-| NetworkPolicy enforced
-| Network (L4)
+| Field | Value
+| Application name | `national-parks-settings`
+| Project | `default`
+| Sync policy | **Manual** (do not enable automatic sync, prune or self-heal)
+| Repository URL | Your Gitea HTTPS clone URL from Mission 2
+| Revision | `HEAD` (or the repository's default branch)
+| Path | `content/modules/ROOT/examples/module02-gitops`
+| Cluster | `https://kubernetes.default.svc`
+| Namespace | `{user}-demo`
 |===
 
-. Ask your partner to confirm that their own map and data endpoint still work. The NetworkPolicy you each added is namespace-scoped; it does not affect the other participant's namespace.
+image::module02-s04-argocd-new-app.svg[S04: Argo CD Application creation form - screenshot placeholder, width=850]
 
-*Checkpoint:* You can explain why a pod in your namespace can still reach the `nationalparks` backend via HTTP while its API resource list is denied to other identities, and why the database NetworkPolicy does not affect traffic between namespaces.
+. Select *Create*. The new Application may show **OutOfSync** and **Missing**. That is expected: the ConfigMap exists in Git but has not been applied.
++
+image::module02-s05-argocd-initial-outofsync.svg[S05: initial OutOfSync state - screenshot placeholder, width=850]
++
+*Predict before syncing:* Should the new ConfigMap exist in the cluster already?
+
+[%collapsible]
+====
+**Answer:** No. The ConfigMap is still only in Git until you review and manually synchronize.
+====
+. Open the Application and inspect the change. It should propose **one ConfigMap** named `national-parks-gitops-info`. If it proposes a Deployment, Secret, Service, Route or namespace, **do not sync**; the wrong repository/path was selected.
+. Select *Sync*, review the resource, then *Synchronize*. Leave prune and force disabled.
+. Confirm from the student terminal:
++
+[source,bash]
+----
+oc get applications.argoproj.io national-parks-settings \
+  -n "$LAB_NAMESPACE" \
+  -o jsonpath='{.status.sync.status}{" / "}{.status.health.status}{"\n"}'
+
+oc get configmap national-parks-gitops-info \
+  -n "$LAB_NAMESPACE" \
+  -o jsonpath='{.data.message}{"\n"}'
+----
++
+Expected: `Synced / Healthy` and `GitOps baseline`. A brief `Progressing` or `Unknown` state is possible while Argo CD refreshes; check its resource tree before proceeding.
+
+image::module02-s06-argocd-initial-synced.svg[S06: first Synced and Healthy Application - screenshot placeholder, width=850]
+
+=== OpenShift 5 console integration (optional, 1 minute)
+
+Open the Showroom *OCP Console* tab. Look for the *GitOps* or *Argo CD* entry in the console navigation. If the **OpenShift GitOps 1.22 console plug-in** is installed, find `national-parks-settings` and compare its status with the standalone Argo CD view.
+
+If no GitOps entry appears, use the standalone *ArgoCD* tab. **Do not install operators or console plug-ins during this lab.** The plug-in is available in GitOps 1.22, but its installation and enabled state vary by cluster.
+
+image::module02-s07-ocp-gitops-console.svg[S07 optional: OpenShift 5 console GitOps plug-in - screenshot placeholder, width=850]
+
+If the plug-in is absent, **skip this optional screenshot** and continue.
+
+*Checkpoint 3:* Argo CD manages exactly one ConfigMap in *your* namespace. The running National Parks application remains unchanged. If the console plug-in is present, you can find the Application in both interfaces.
+
+== Mission 4: Change Git, investigate with Lightspeed, then sync (7 minutes)
+
+. In *Gitea*, edit `content/modules/ROOT/examples/module02-gitops/national-parks-gitops-info.yaml` in your own repository. Change **only** this value:
++
+[source,yaml]
+----
+message: "Updated in Gitea"
+----
+. Commit the change directly to the branch Argo CD is tracking. Do not edit any Secret or workload manifest.
++
+image::module02-s08-gitea-commit.svg[S08: Gitea commit after editing ConfigMap - screenshot placeholder, width=850]
+. In *ArgoCD*, open `national-parks-settings` and select *Refresh*. The Application should become **OutOfSync**. The live ConfigMap still has `GitOps baseline` because automatic sync is disabled.
++
+image::module02-s09-argocd-drift.svg[S09: OutOfSync after Git commit - screenshot placeholder, width=850]
++
+*Predict:* Where does the new message exist now — Git, Kubernetes or both?
+
+[%collapsible]
+====
+**Answer:** Git only. The cluster still has the baseline message until a manual Sync.
+====
+. Before syncing, ask Lightspeed:
++
+[source,text,subs="attributes+"]
+----
+I updated Git, but ConfigMap national-parks-gitops-info
+still shows the old message in namespace {user}-demo.
+
+Use live Kubernetes tools to inspect the Argo CD Application
+and the ConfigMap. Explain why it has not changed.
+
+Do not read Secrets or change anything.
+----
++
+A useful diagnosis is that the Application uses **manual synchronization** and needs a reviewed Sync. MCP may not be able to inspect the Git commit itself; confirm Git changes in Gitea and the Application status in Argo CD.
+
+image::module02-s10-lightspeed-drift.svg[S10: Lightspeed MCP diagnosis of GitOps drift - screenshot placeholder, width=850]
+
+**Verify Lightspeed's evidence** before syncing:
++
+[source,bash]
+----
+oc get applications.argoproj.io national-parks-settings \
+  -n "$LAB_NAMESPACE" \
+  -o jsonpath='{.spec.syncPolicy.automated}{" / "}{.status.sync.status}{"\n"}'
+
+oc get configmap national-parks-gitops-info \
+  -n "$LAB_NAMESPACE" \
+  -o jsonpath='{.data.message}{"\n"}'
+----
++
+Expected before Sync: an empty `automated` field, `OutOfSync` and `GitOps baseline`. Check the **real results**, not only the AI explanation.
+
+. In the Argo CD Application, select *Sync* -> *Synchronize*.
+. Verify the change:
++
+[source,bash]
+----
+oc get configmap national-parks-gitops-info \
+  -n "$LAB_NAMESPACE" \
+  -o jsonpath='{.data.message}{"\n"}'
+----
++
+Expected: `Updated in Gitea`.
+
+image::module02-s11-argocd-resynced.svg[S11: Synced and Healthy after manual resync - screenshot placeholder, width=850]
+
+*Checkpoint 4:* You saw **Git commit -> OutOfSync -> manual Sync -> updated cluster ConfigMap**. Lightspeed helped investigate but did not modify the cluster.
+
+== Mission 5: Confirm multitenancy and app health (5 minutes)
+
+An Argo CD Application has a target namespace. OpenShift 5's MCP server respects Kubernetes permissions, and Kubernetes RBAC separately controls who can change resources there. This is why an AI read-only investigation cannot override tenant boundaries.
+
+. In the Terminal, compare your rights:
++
+[source,bash]
+----
+oc auth can-i patch deployments.apps -n "$LAB_NAMESPACE"
+oc auth can-i patch deployments.apps -n openshift-config
+----
++
+Normally the first check is `yes` and the second is `no`. If the result differs, record it and ask the instructor: access is determined by your actual cluster RBAC.
+
+image::module02-s12-tenant-rbac.svg[S12: namespace RBAC comparison - screenshot placeholder, width=850]
+
+*Think:* Would NetworkPolicy change these `oc auth can-i` answers?
+
+[%collapsible]
+====
+**Answer:** No. RBAC protects Kubernetes API actions; NetworkPolicy controls Pod network traffic.
+====
+
+. Inspect the namespace-scoped discovery RoleBinding and the GitOps destination:
++
+[source,bash]
+----
+oc get rolebinding parksmap-discovery -n "$LAB_NAMESPACE" \
+  -o jsonpath='{.subjects[0].name}{"\n"}'
+
+oc get applications.argoproj.io national-parks-settings \
+  -n "$LAB_NAMESPACE" \
+  -o jsonpath='{.spec.destination.namespace}{"\n"}'
+----
++
+Expected: `parksmap-discovery` and your own `{user}-demo` namespace.
+
+. Check that the map still works: https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/[Open ParksMap,window=_blank] and https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[View park data,window=_blank].
+
+[NOTE]
+====
+*Multitenancy in OpenShift 5:* RBAC restricts Kubernetes API actions, NetworkPolicy restricts Pod traffic, and UserDefinedNetwork can provide additional network isolation when configured by an administrator. These are different controls; **this exercise does not create or change network policies or tenant networks**.
+====
+
+*Checkpoint 5:* You have student-scoped permissions, a manually synchronized ConfigMap, and a healthy National Parks application.
+
+== Mission complete
+
+You used *Lightspeed + live MCP reads* to inspect GitOps state and explain a manual-sync delay. You used *Gitea* to change desired state and *Argo CD* to apply it, without risking the working National Parks workloads.
+
+[cols="2,3",options="header"]
+|===
+| Check | Expected
+| Student | `oc whoami` returns `{user}`
+| Gitea | Your repository has a committed ConfigMap change
+| Argo CD | `national-parks-settings` is Synced
+| Kubernetes | `national-parks-gitops-info` says `Updated in Gitea`
+| Boundaries | Application targets `{user}-demo`, with no broad cluster rights
+| National Parks | Map and data endpoint still work
+|===
+
+[IMPORTANT]
+====
+*For later modules:* Argo CD currently manages **only the GitOps learning ConfigMap**, not the National Parks Deployments or MongoDB Service. The following modules must not assume GitOps owns all three application workloads. Your instructor will expand the GitOps scope deliberately in a later exercise.
+====
+
+xref:module-03-workload-management-resource-controls.adoc[Continue to Module 3: Workload Management & Resource Controls]
 
 == Troubleshooting
 
 [cols="2,3",options="header"]
 |===
-| Symptom | Next step
-
-| Argo CD Application shows `OutOfSync` before your commit
-| Ask the instructor to check whether drift exists from a previous session. Do not sync until the baseline state is understood.
-
-| `git clone` or `git push` fails
-| Confirm the repository URL does not embed credentials. Use the token or SSH key the instructor provided separately.
-
-| `oc kustomize` reports a missing resource file
-| Confirm the filename in `kustomization.yaml` matches the file you created exactly.
-
-| Argo CD sync fails with a permission error
-| The AppProject or Argo CD controller may not permit `networking.k8s.io/NetworkPolicy`. Ask the instructor to add it.
-
-| Data endpoint returns empty after policy sync
-| The `nationalparks` pod may not carry the expected `component=nationalparks` label. Run `oc get pods -n "$LAB_NAMESPACE" --show-labels` and compare with the NetworkPolicy `podSelector`.
-
-| Frontend loads but map shows no markers
-| The backend Route or backend-to-database connection may be affected. Check `nationalparks` pod logs and events.
-
-| `oc auth can-i list pods -n "$PEER_NAMESPACE"` returns `yes`
-| An unexpected ClusterRoleBinding may exist. Ask the instructor to check tenant permissions.
-
-| Partner namespace check returns a different error than `Forbidden`
-| Confirm the namespace name with your partner. A typo returns `NotFound`, not `Forbidden`.
+| Symptom | What to check
+| No Gitea repository | Verify tenant bootstrap migrated `openshift-5-container` after this module was merged
+| Gitea rejects login | Use the student Gitea credentials, which can differ from OpenShift
+| Argo CD cannot reach Gitea | Verify the HTTPS Clone URL and that the repo is public and reachable from the repo-server
+| Application cannot create resources | Confirm destination namespace is yours and the Argo CD controller has namespace permissions
+| App has unintended workloads | Stop; use the exact `module02-gitops` path, never repository root
+| Application still OutOfSync | Select *Refresh*, inspect the diff, and use *Sync* (manual policy)
+| Lightspeed cannot inspect Application CR | Use `oc get applications.argoproj.io` and the Argo CD UI; don't infer unseen resources
+| Map loses park markers | Check Module 1's `parksmap-discovery` ServiceAccount and MongoDB Service port; don't fix via unrelated GitOps changes
 |===
-
-== Completion Check
-
-You are ready for Module 3 when you can show:
-
-* The Argo CD Application synchronized to the new revision containing `mongodb-netpol.yaml`.
-* `sync=Synced` and `health=Healthy` reported for your Application.
-* The NetworkPolicy installed in `$LAB_NAMESPACE` with the correct `podSelector` and ingress rule.
-* A successful frontend HTTP `200` and a positive park record count after the policy was applied.
-* `Forbidden` from the Kubernetes API when requesting your partner's pods.
-* An explanation of why your RBAC boundary and your NetworkPolicy protect different things.
-
-== Keep for Module 3
-
-Leave all National Parks resources deployed and the NetworkPolicy in place.
-Module 3 will use the running application to explore resource controls and compare configured resource requests with observed usage.
-
-Record your state for the next module:
-
-[source,bash,role=execute]
-----
-printf 'Namespace:        %s\n' "$LAB_NAMESPACE"
-printf 'Application:      %s/%s\n' "$ARGOCD_NAMESPACE" "$ARGOCD_APP"
-printf 'Git branch:       %s\n' "$GITOPS_BRANCH"
-printf 'Deployed revision:%s\n' "$EXPECTED_REVISION"
-printf 'Frontend URL:     %s\n' "$PARKSMAP_URL"
-printf 'Backend URL:      %s\n' "$NATIONALPARKS_URL"
-----
-
-== Facilitator Preparation
-
-Before delivering this module:
-
-. Provision one application namespace per participant and verify that student accounts cannot list pods in a neighbor's namespace.
-. Deploy the full National Parks stack (`parksmap`, `nationalparks`, `mongodb-nationalparks`) in each namespace and confirm the application is healthy before students arrive.
-. Confirm that all three pod templates carry the `component` label (`parksmap`, `nationalparks`, `mongodb-nationalparks`) and the `app.kubernetes.io/part-of=national-parks-app` selector.
-. Provide a writable Git repository and branch per participant. Configure repository authentication and confirm the participant can clone and push.
-. Create an Argo CD Application per participant targeting the correct source path and the participant's namespace. Confirm the Application reports `Synced` and `Healthy` before the session.
-. Add `networking.k8s.io/NetworkPolicy` to the AppProject's permitted resource kinds.
-. Confirm the Argo CD controller has permission to create NetworkPolicy resources in student namespaces.
-. Arrange partner pairs. Confirm both participants share a working pod-to-pod baseline only if you intend to include a network-level cross-namespace test (this module tests API isolation, not pod-to-pod networking — the NetworkPolicy exercise is scoped within the student's own namespace).
-. Confirm the platform network does not already block all cross-namespace pod traffic (which would make the RBAC test meaningless as a comparison).
-. Run the complete exercise with two ordinary student identities before delivering the workshop.
-
-For a 20-minute delivery, the starter files (`kustomization.yaml` and the existing application manifests) must already be committed. Only the NetworkPolicy is added during the timed session.
 
 == References
 
-* {ocp5-gitops}[OpenShift GitOps documentation]
-* {ocp5-release-notes}#ocp-release-notes-extensions_release-notes[OLM v1 and ClusterExtension release notes]
-* https://argo-cd.readthedocs.io/en/stable/core_concepts/[Argo CD core concepts]
-* https://kubernetes.io/docs/concepts/services-networking/network-policies/[Kubernetes NetworkPolicy]
-* https://kubernetes.io/docs/reference/kubectl/generated/kubectl_auth/kubectl_auth_can-i/[kubectl auth can-i]
+* https://docs.redhat.com/en/documentation/red_hat_openshift_gitops/1.21/html/declarative_cluster_configuration/configuring-an-openshift-cluster-by-deploying-an-application-with-cluster-configurations[Red Hat OpenShift GitOps: manual synchronization]
+* https://github.com/openshift/openshift-mcp-server/blob/main/docs/openshift/user-guide.md[OpenShift MCP server guide]
+* https://www.redhat.com/en/blog/announcing-red-hat-openshift-5[What's new in OpenShift 5: MCP server GA and intelligent operations].
+* https://developers.redhat.com/articles/2026/11/09/red-hat-openshift-5-for-developers[OpenShift 5 for developers: GitOps 1.22 console plug-in, Source Hydrator and multitenancy].
+* https://kubernetes.io/docs/reference/access-authn-authz/rbac/[Kubernetes RBAC]

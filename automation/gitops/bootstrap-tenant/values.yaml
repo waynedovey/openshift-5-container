@@ -11,6 +11,12 @@ gitea:
     - name: openshift-starter-guides
       url: https://github.com/redhat-scholars/openshift-starter-guides
       private: false
+    # Module 2: each student gets an editable copy containing the safe
+    # content/modules/ROOT/examples/module02-gitops Kustomize source.
+    # This requires the upstream workshop PR to be merged before provisioning.
+    - name: openshift-5-container
+      url: https://github.com/rhpds/openshift-5-container
+      private: false
 
 # Per-student quota shared by all namespaces with the student's requester
 # annotation. Sized for Argo CD, Gitea and the Module 1 National Parks app.

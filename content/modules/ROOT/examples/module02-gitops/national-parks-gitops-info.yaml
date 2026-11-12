@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: national-parks-gitops-info
+  labels:
+    app.kubernetes.io/part-of: national-parks-app
+    app.kubernetes.io/managed-by: argocd
+    component: gitops
+data:
+  message: "GitOps baseline"
+  lesson: "Module 2: manual synchronization"
