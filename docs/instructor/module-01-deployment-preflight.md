@@ -6,6 +6,19 @@ forwards to `targetPort: 27018`. The MongoDB Pod can be Ready while the API
 cannot connect. Students use Lightspeed 2.0 for read-only investigation and
 repair the MongoDB Service manually.
 
+## Target delivery time
+
+**25–30 minutes** for the console-first student lab, with a **28-minute**
+guided walkthrough: project 1, frontend/RBAC 5, Python backend build 5,
+MongoDB fault 6, Lightspeed diagnosis 4, Service repair 3,
+application/map verification 3, and sign-off 1 minute.
+
+Allow **2 minutes of transitions** within a 30-minute session. This is a
+*rehearsal target*, not a measured guarantee: image pulls, build pipelines,
+student authentication, RBAC and Lightspeed MCP read access must be validated
+during preflight. Slow cluster startup or permissions troubleshooting are
+out-of-band setup issues, not additional required student exercises.
+
 ## Before class
 
 1. Authenticate the Showroom terminal as the assigned student, **not** the
