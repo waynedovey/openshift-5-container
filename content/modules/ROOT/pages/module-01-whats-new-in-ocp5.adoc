@@ -36,7 +36,7 @@ This is a *50-minute, console-first workshop* using *OpenShift Lightspeed 2.0*. 
 oc login {openshift_api_url} -u {user} -p {password}
 ----
 +
-image::module01-student-login-success.svg[Example of a successful student terminal login, password masked, width=900]
+image::module01-student-login-success.png[Student login successful in Showroom Terminal, password redacted, width=900]
 +
 Showroom fills in the API URL, username and password for your assigned lab. This changes the terminal from the Showroom ServiceAccount to your student identity. **Note:** Including `-p` can expose your password in shell history and process listings; use this only in the dedicated disposable lab terminal. If `{openshift_api_url}` is not resolved, use the API URL from the OpenShift console's *Copy login command*. If you see a certificate trust warning, ask your instructor for the approved login method.
 . Check your terminal identity and permissions:
@@ -387,8 +387,8 @@ Keep any other existing selector keys unchanged.
 If the backend API works but the map stays empty, check that the `parksmap` Deployment uses `serviceAccountName: parksmap-discovery` and both backend Service and Route have `type=parksmap-backend`. Do not reload the database to fix discovery.
 ====
 
-image::module01-s01-map.png[National Parks map with park markers, width=900]
-image::module01-s02-topology.png[Three healthy application workloads, width=900]
+image::module01-s01-map.png[Working National Parks map showing clustered park markers and the National Parks PY layer, width=900]
+image::module01-s02-topology.png[OpenShift Topology showing ParksMap, Python backend and MongoDB running, width=900]
 
 *Checkpoint 6:* The Route works, backend discovery works and the map shows markers. **Mission complete!**
 

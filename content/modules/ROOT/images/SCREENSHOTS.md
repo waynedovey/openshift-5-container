@@ -1,30 +1,29 @@
 # Module 1: native-console deployment screenshot guide
 
-The 45-minute Mission National Parks uses the student's **existing** workshop
-project, `{user}-demo`, using the student's provisioned `user` attribute.
-Students do **not** create a new namespace. In the supplied console captures,
-the project is `user-pjbsb-demo`, which matches this design.
+The Module 1 screenshot refresh covers three final student views:
 
-The real OpenShift 5 screenshots for the frontend image deployment and browser
-journey are uploaded as S05a–S05i. The complete Python backend Git-import,
-BuildConfig, build-log, Topology, Routes and welcome-page sequence is uploaded
-as S06a–S06i. S00 is also a real Projects screen. S04a–S04b capture the
-**previous** two-resource MongoDB YAML import and confirmation. The current lab
-adds a non-secret ConfigMap to allow a one-field MCP image replacement, so
-S04a/S04b must be recaptured showing **three** created resources. Screenshots S01–S04 and
-S07–S08 are still pending; the old PNGs in those slots are illustrations,
-**not proof of a working end-to-end lab**.
+- **Login:** successful student `oc login` in Showroom Terminal, with the password masked.
+- **S01:** populated National Parks map with the National Parks (PY) layer enabled.
+- **S02:** OpenShift 5 Topology showing `parksmap`, `national-parks-app`, and `mongodb-nationalparks`.
+
+All three screenshots have been committed to `content/modules/ROOT/images/`
+in this PR. The login capture is redacted; S01 and S02 are the actual
+student screenshots, not old placeholder graphics.
+
+Other capture slots (for example S03, S04, S07, and S08) are outside
+this three-image refresh and may still need separate review.
 
 ## Capture list (use the exact filenames)
 
 | ID | Filename | New screen to capture | Evidence or callout |
 |---|---|---|---|
+| Login | `module01-student-login-success.png` | Terminal `oc login` succeeded | **Uploaded:** password redacted; login successful and student project visible |
 | S00 | `module01-s00-console.png` | Student sees `user-<GUID>-demo` in the Projects list | Existing project; no *Create Project* action |
-| S01 | `module01-s01-map.png` | Populated National Parks map after the student loads data | Visible park markers and one selected park |
-| S02 | `module01-s02-topology.png` | Topology showing all three newly created workloads | `parksmap`, `nationalparks`, `mongodb-nationalparks` |
+| S01 | `module01-s01-map.png` | Populated National Parks map after the student loads data | **Uploaded:** National Parks (PY) visible with clustered map markers |
+| S02 | `module01-s02-topology.png` | Topology showing all three newly created workloads | **Uploaded:** `parksmap`, `national-parks-app`, `mongodb-nationalparks` |
 | S03 | `module01-s03-route.png` | `Networking → Routes → nationalparks` | Route hostname and `type=parksmap-backend` label |
 | S04 | `module01-s04-service.png` | `Networking → Services → mongodb-nationalparks` | Internal ClusterIP; no database Route |
-| S04a | `module01-s04a-mongodb-yaml-editor.png` | Quick create → Import YAML | **Recapture required:** ConfigMap, Deployment with deliberately old image, and Service; uploaded capture is superseded |
+| S04a | `module01-s04a-mongodb-yaml-editor.png` | Quick create → Import YAML | **Recapture required:** ConfigMap, working MongoDB 8 Deployment, and Service; uploaded capture is superseded |
 | S04b | `module01-s04b-mongodb-created.png` | Import YAML → Create confirmation | **Recapture required:** three successful resources, not two; uploaded capture is superseded |
 | S05a | `module01-s05a-container-images-menu.png` | OpenShift 5 top-bar `+` menu | Choose *Container images*; **uploaded** |
 | S05b | `module01-s05b-image-and-project.png` | Deploy Image form | Validated `quay.io/openshiftroadshow/parksmap:latest` and `user-<GUID>-demo`; **uploaded** |
@@ -44,7 +43,7 @@ S07–S08 are still pending; the old PNGs in those slots are illustrations,
 | S06g | `module01-s06g-topology-resources.png` | Backend Topology → Resources | Running Pod and Complete build; **uploaded** |
 | S06h | `module01-s06h-backend-routes.png` | Networking → Routes | Backend Route `nationalparks` healthy alongside frontend Route; **uploaded** |
 | S06i | `module01-s06i-backend-welcome.png` | Open backend Route's Location URL | `Welcome to the National Parks data service.`; **uploaded** |
-| S07 | `module01-s07-lightspeed.png` | Lightspeed MCP diagnosis and approved update to MongoDB image | Real `resources_create_or_update` tool result, image `registry.redhat.io/rhmap47/mongodb` to `quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim`, and approval evidence |
+| S07 | `module01-s07-lightspeed.png` | Lightspeed diagnoses the backend Service selector mismatch | Capture live read-only MCP evidence; **not yet captured** |
 | S08 | `module01-s08-health.png` | Final health in OCP 5 console | Three ready workloads, two Routes, working map after recovery |
 
 The earlier `module01-s05-scale-before.png` and `module01-s06-scale-after.png`
