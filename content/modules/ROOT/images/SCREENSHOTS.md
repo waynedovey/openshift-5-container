@@ -10,8 +10,9 @@ All three screenshots have been committed to `content/modules/ROOT/images/`
 in this PR. The login capture is redacted; S01 and S02 are the actual
 student screenshots, not old placeholder graphics.
 
-Other capture slots (for example S03, S04, S07, and S08) are outside
-this three-image refresh and may still need separate review.
+Live Lightspeed diagnosis screenshots S07, S07a and S07b were captured in
+`user-6k7ww-demo` on 12 November 2026. S03, S04 and S08 may still need
+separate review.
 
 ## Capture list (use the exact filenames)
 
@@ -43,7 +44,9 @@ this three-image refresh and may still need separate review.
 | S06g | `module01-s06g-topology-resources.png` | Backend Topology → Resources | Running Pod and Complete build; **uploaded** |
 | S06h | `module01-s06h-backend-routes.png` | Networking → Routes | Backend Route `nationalparks` healthy alongside frontend Route; **uploaded** |
 | S06i | `module01-s06i-backend-welcome.png` | Open backend Route's Location URL | `Welcome to the National Parks data service.`; **uploaded** |
-| S07 | `module01-s07-lightspeed.png` | Lightspeed diagnoses the incorrect MongoDB Service `targetPort` | Recapture with live read-only evidence of 27018 versus container port 27017; **not yet captured** |
+| S07 | `module01-s07-lightspeed-root-cause.png` | Lightspeed diagnoses the wrong MongoDB Service `targetPort` | **Uploaded:** live diagnosis showing `27018` versus Pod port `27017` |
+| S07a | `module01-s07a-lightspeed-fix-console.png` | Lightspeed's console repair instructions | **Uploaded:** change `targetPort: 27018` to `27017` |
+| S07b | `module01-s07b-lightspeed-fix-oc.png` | Lightspeed's CLI repair alternative | **Uploaded:** `oc patch svc mongodb-nationalparks` command |
 | S08 | `module01-s08-health.png` | Final health in OCP 5 console | Three ready workloads, MongoDB Service targetPort restored to 27017 and working map |
 
 The earlier `module01-s05-scale-before.png` and `module01-s06-scale-after.png`
@@ -95,5 +98,6 @@ replace those illustrative screenshots.
       permission and provides a privacy-respecting fallback.
 - [ ] Backend source build and MongoDB image pull work with student permissions.
 - [ ] Screenshots are authentic, legible and match current OpenShift 5 UI.
-- [ ] S07 documents the real read-only AI diagnosis (no MCP write requirement).
+- [x] S07–S07b document the live, read-only Lightspeed diagnosis and proposed repair (no MCP write requirement).
+- [ ] A fresh student completes the repair and verifies data loading and working map.
 - [ ] Two students independently finish in 45 minutes or the timing is revised.
