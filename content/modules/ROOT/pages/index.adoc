@@ -3,7 +3,7 @@
 
 Work through the responsibilities of a platform engineer: establish an application baseline, understand GitOps, apply tenant and resource controls, investigate an incident, and deliver a verified fix.
 
-Module 1 is *Mission National Parks*: a 50-minute console-first workshop. Students deploy the frontend, Python API and working MongoDB 8, encounter an incorrect MongoDB Service target port. Lightspeed 2.0 helps diagnose the connection failure; students repair one Service field, load data and verify the map.
+Module 1 is *Mission National Parks*: a 25–30-minute console-first workshop (28-minute guided path). Students deploy the frontend, Python API and working MongoDB 8, encounter an incorrect MongoDB Service target port. Lightspeed 2.0 helps diagnose the connection failure; students repair one Service field, load data and verify the map.
 
 The workshop is designed for up to 30 participants on a shared OpenShift cluster. Each participant uses an assigned identity and application namespace.
 
@@ -49,7 +49,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | Module | Duration | Activity and outcome | Content status
 
 | xref:module-01-whats-new-in-ocp5.adoc[1 — Mission National Parks]
-| 50 min (rehearsal target)
+| 25–30 min (rehearsal target)
 | Native console deployment: frontend, Git backend, student-created Secret, working MongoDB 8, broken MongoDB Service target port and Lightspeed-guided repair.
 | Console deployment draft; test images/builds and recapture screenshots
 
@@ -74,7 +74,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | Requires redesign before full National Parks workloads are GitOps-managed
 |===
 
-*Planned full workshop: approximately 2 hours 40 minutes (pending Module 3/5 redesign).* Module 1 targets 50 minutes after registry pull, backend build, student Secret creation, discovery RBAC, a deliberate MongoDB Service port fault, Lightspeed 2.0 read approvals and manual console Service repair have been rehearsed under student identities. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 introduces GitOps safely using one ConfigMap; full workload onboarding is reserved for a later exercise.
+*Planned full workshop: approximately 2 hours 20 minutes (pending Module 3/5 redesign).* Module 1 targets 28 guided minutes, allowing up to 30 minutes in a preflighted student environment. Registry pulls, Git builds, student Secret creation, discovery RBAC, the deliberate MongoDB Service port fault, Lightspeed 2.0 reads and the console repair must be rehearsed to meet this timing. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 introduces GitOps safely using one ConfigMap; full workload onboarding is reserved for a later exercise.
 
 == Release Topics Connected to the Application
 
