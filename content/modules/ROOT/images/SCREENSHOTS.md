@@ -1,14 +1,17 @@
 # Module 1: native-console deployment screenshot guide
 
-The 25-minute Mission National Parks uses the student's **existing** workshop
-project, `user-%GUID%-demo` (the Antora text displays this as `{lab_user}-demo`).
+The 45-minute Mission National Parks uses the student's **existing** workshop
+project, `{user}-demo`, using the student's provisioned `user` attribute.
 Students do **not** create a new namespace. In the supplied console captures,
 the project is `user-pjbsb-demo`, which matches this design.
 
 The real OpenShift 5 screenshots for the frontend image deployment and browser
 journey are uploaded as S05a–S05i. The complete Python backend Git-import,
 BuildConfig, build-log, Topology, Routes and welcome-page sequence is uploaded
-as S06a–S06i. S00 is also a real Projects screen. Screenshots S01–S04 and
+as S06a–S06i. S00 is also a real Projects screen. S04a–S04b capture the
+**previous** two-resource MongoDB YAML import and confirmation. The current lab
+adds a non-secret ConfigMap to allow a one-field MCP image replacement, so
+S04a/S04b must be recaptured showing **three** created resources. Screenshots S01–S04 and
 S07–S08 are still pending; the old PNGs in those slots are illustrations,
 **not proof of a working end-to-end lab**.
 
@@ -21,6 +24,8 @@ S07–S08 are still pending; the old PNGs in those slots are illustrations,
 | S02 | `module01-s02-topology.png` | Topology showing all three newly created workloads | `parksmap`, `nationalparks`, `mongodb-nationalparks` |
 | S03 | `module01-s03-route.png` | `Networking → Routes → nationalparks` | Route hostname and `type=parksmap-backend` label |
 | S04 | `module01-s04-service.png` | `Networking → Services → mongodb-nationalparks` | Internal ClusterIP; no database Route |
+| S04a | `module01-s04a-mongodb-yaml-editor.png` | Quick create → Import YAML | **Recapture required:** ConfigMap, Deployment with deliberately old image, and Service; uploaded capture is superseded |
+| S04b | `module01-s04b-mongodb-created.png` | Import YAML → Create confirmation | **Recapture required:** three successful resources, not two; uploaded capture is superseded |
 | S05a | `module01-s05a-container-images-menu.png` | OpenShift 5 top-bar `+` menu | Choose *Container images*; **uploaded** |
 | S05b | `module01-s05b-image-and-project.png` | Deploy Image form | Validated `quay.io/openshiftroadshow/parksmap:latest` and `user-<GUID>-demo`; **uploaded** |
 | S05c | `module01-s05c-runtime-and-app.png` | Runtime icon and General settings | Default `openshift` icon, Create application, `national-parks-app`, `parksmap`; **uploaded** |
@@ -39,8 +44,8 @@ S07–S08 are still pending; the old PNGs in those slots are illustrations,
 | S06g | `module01-s06g-topology-resources.png` | Backend Topology → Resources | Running Pod and Complete build; **uploaded** |
 | S06h | `module01-s06h-backend-routes.png` | Networking → Routes | Backend Route `nationalparks` healthy alongside frontend Route; **uploaded** |
 | S06i | `module01-s06i-backend-welcome.png` | Open backend Route's Location URL | `Welcome to the National Parks data service.`; **uploaded** |
-| S07 | `module01-s07-lightspeed.png` | Lightspeed response showing real MCP tool results for the newly deployed app | Successful read evidence and matching workload/Route state |
-| S08 | `module01-s08-health.png` | Final health in OCP 5 console | Three ready workloads, two Routes, working map |
+| S07 | `module01-s07-lightspeed.png` | Lightspeed MCP diagnosis and approved update to MongoDB image | Real `resources_create_or_update` tool result, image `registry.redhat.io/rhmap47/mongodb` to `quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim`, and approval evidence |
+| S08 | `module01-s08-health.png` | Final health in OCP 5 console | Three ready workloads, two Routes, working map after recovery |
 
 The earlier `module01-s05-scale-before.png` and `module01-s06-scale-after.png`
 placeholders are no longer referenced in Module 1. S05a–S05i and S06a–S06i
@@ -69,17 +74,31 @@ replace those illustrative screenshots.
 - [x] S06a–S06i document the Dockerfile import, BuildConfig, build logs,
       running backend, Routes and HTTP welcome message. This does not
       validate MongoDB connectivity or map data.
+- [ ] Recapture S04a–S04b after the three-resource import update. Existing captures
+      are real but outdated and do not document bootstrap ConfigMap creation.
 - [ ] Student can deploy into `user-<GUID>-demo` without modifying the existing
       Argo CD, Gitea or Showroom components in that namespace.
 - [ ] The student can create frontend/BuildConfig/Route resources through the
       actual OCP 5 console and see the newly created Topology group.
+- [ ] Each student creates `nationalparks-mongodb-parameters` in their **own**
+      demo project using the console's key/value Secret form; both password
+      values are private and different. The instructor does not pre-create it.
+- [ ] The deliberately broken legacy MongoDB image starts and reports 3.2.10;
+      the backend logs show an actual protocol incompatibility with PyMongo 4.18.1.
+- [ ] The built-in MCP `resources_create_or_update` tool is exposed to a student
+      account, obtains a human approval and changes only the MongoDB container
+      image to `quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim`.
+- [ ] The modern image starts under the namespace's restricted SCC, consumes
+      the student Secret and executes `mongodb-nationalparks-bootstrap` to
+      create an application user without exposing credentials.
 - [ ] Instructor confirms how this legacy ParksMap frontend handles denied
       browser geolocation, and provides a privacy-respecting fallback.
-- [ ] The backend source build and MongoDB image pull were both tested under
+- [ ] The backend source build and both MongoDB image pulls were tested under
       student-level permissions and complete within the allotted time.
-- [ ] The Secret reference, backend Route discovery label, data load and map
+- [ ] The student-created Secret reference, backend Route discovery label, data load and map
       marker display all work as documented.
 - [ ] Screenshots are authentic, legible and match the current Project Felt UI.
-- [ ] MCP screenshot captures successful tool-result evidence, not just an AI
-      claim. If no tool calls are available, change the lab result accordingly.
-- [ ] Two students independently finish in 25 minutes or the timing is revised.
+- [ ] MCP screenshot captures an authenticated, approved write and successful
+      tool-result evidence, not just an AI claim. If no tool calls are available,
+      change the lab result accordingly.
+- [ ] Two students independently finish in 45 minutes or the timing is revised.

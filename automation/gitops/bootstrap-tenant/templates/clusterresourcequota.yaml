@@ -1,0 +1,18 @@
+{{- if .Values.tenantQuota.enabled }}
+# Reconcile the quota initially provisioned by the tenant-namespace workload.
+# Keep its name and requester selector so we update the existing quota instead
+# of creating a second, competing quota for this student.
+apiVersion: quota.openshift.io/v1
+kind: ClusterResourceQuota
+metadata:
+  name: tenant-{{ .Values.username }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  selector:
+    annotations:
+      openshift.io/requester: {{ .Values.username | quote }}
+  quota:
+    hard:
+{{ toYaml .Values.tenantQuota.hard | indent 6 }}
+{{- end }}

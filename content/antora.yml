@@ -10,8 +10,9 @@ asciidoc:
     ocp_version: '5.0.0'
     page-pagination: true
     guid: '%GUID%'
-    lab_user: 'user-%GUID%'
-    lab_password: 'openshift'
+    # Showroom injects the student-specific `user` and `password` attributes.
+    # Do not define competing lab_user/lab_password defaults here: a literal
+    # %GUID% fallback would appear in the published credentials table.
     ssh_user: lab-user
     ssh_password: changeme
     openshift_console_url: 'https://console-openshift-console.apps.cluster-%GUID%.example.com'

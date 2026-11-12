@@ -11,3 +11,14 @@ gitea:
     - name: openshift-starter-guides
       url: https://github.com/redhat-scholars/openshift-starter-guides
       private: false
+
+# Per-student quota shared by all namespaces with the student's requester
+# annotation. Sized for Argo CD, Gitea and the Module 1 National Parks app.
+tenantQuota:
+  enabled: true
+  hard:
+    limits.cpu: "8"
+    requests.cpu: "4"
+    limits.memory: 12Gi
+    requests.memory: 8Gi
+    requests.storage: 20Gi
