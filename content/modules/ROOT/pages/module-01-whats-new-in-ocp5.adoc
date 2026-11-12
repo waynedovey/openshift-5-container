@@ -5,11 +5,13 @@
 
 Deploy the National Parks frontend, Python API and MongoDB 8 in your existing workshop project. The MongoDB Service contains a deliberately incorrect port. Use Lightspeed to diagnose the connection failure, repair the Service and load park data. Leave Argo CD, Gitea and other workshop workloads alone.
 
-This is a *50-minute, console-first workshop* using *OpenShift Lightspeed 2.0*. Lightspeed investigates; you apply the repair.
+This is a *25–30-minute, console-first workshop* using *OpenShift Lightspeed 2.0*. The guided walkthrough targets 28 minutes, with up to 2 minutes for transitions.
+
+These timings assume your instructor has already verified image pulls, the Python build, student permissions, Lightspeed read tools and Argo CD/Gitea isolation. If any of those prerequisites fail, troubleshoot them separately rather than counting them against the lab. Lightspeed investigates; you apply the repair.
 
 [cols="1,1,1,1,1,1,1,1",options="header"]
 |===
-| 0–2 | 2–11 | 11–17 | 17–27 | 27–33 | 33–43 | 43–48 | 48–50 min
+| 0–1 | 1–6 | 6–11 | 11–17 | 17–21 | 21–24 | 24–27 | 27–28 min
 | Select project | Frontend + discovery permissions | Python API | MongoDB 8 + wrong port | Diagnose with Lightspeed | Repair MongoDB Service | Load data + map | Sign-off
 |===
 
@@ -24,7 +26,7 @@ This is a *50-minute, console-first workshop* using *OpenShift Lightspeed 2.0*. 
 * Your instructor should have installed *OpenShift Lightspeed Operator 2.0* and configured a working model and built-in Kubernetes MCP integration. Lightspeed's *Troubleshooting* mode is the only AI mode required here; *Agentic Lightspeed*, BYOK and separately installed MCP servers are not prerequisites. If the console has no Troubleshooting mode or no live MCP results, stop and notify the instructor.
 ====
 
-== Mission 0: Select your existing workshop project (2 minutes)
+== Mission 0: Select your existing workshop project (1 minute)
 
 . In Showroom, select the *OCP Console* tab or open {openshift_console_url}[your OpenShift console]. Sign in as `{user}`.
 . Open *Projects* (from *Home* or your console's project navigation). Locate and open **`{user}-demo`**. If you cannot see it, stop and ask the instructor to grant access; do **not** click *Create Project*.
@@ -80,7 +82,7 @@ Only after MongoDB is ready, use https://national-parks-app-{user}-demo.{openshi
 
 Showroom's built-in *ParksMap* and *National Parks API* tabs open these applications beside the instructions. If your browser blocks an embedded app, use the new-browser-tab links instead.
 
-== Mission 1: Put the frontend online with discovery access (9 minutes)
+== Mission 1: Put the frontend online with discovery access (5 minutes)
 
 The fastest way to begin is with an existing container image. A running frontend does not mean the application has its data yet.
 
@@ -188,7 +190,7 @@ The page heading *Map Visualizer on OpenShift 4* is literal text in the https://
 
 *Checkpoint 1 — mandatory:* The https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/[ParksMap Route,window=_blank] loads. The terminal verification returns **`parksmap-discovery`**. If it is blank, stop; otherwise Lightspeed will diagnose RBAC instead of the intended Service fault.
 
-== Mission 2: Build the Python backend from Git (6 minutes)
+== Mission 2: Build the Python backend from Git (5 minutes)
 
 The map now has a frontend, but it still needs a Python API. In this mission you will import its source code, watch OpenShift build a container image, and check that the backend answers HTTP requests.
 
@@ -260,7 +262,7 @@ The frontend discovers the API using **Routes and Services** labelled `type=park
 
 *Checkpoint 2:* The Python backend BuildConfig has produced a *Complete* build, the backend Pod is *Running*, the Service and Route exist, and the Route's URL displays **Welcome to the National Parks data service.** Park data will be added later.
 
-== Mission 3: Deploy MongoDB and observe the failure (10 minutes)
+== Mission 3: Deploy MongoDB and observe the failure (6 minutes)
 
 Deploy MongoDB 8. The database Pod will start, but the Python backend cannot reach it because the MongoDB Service contains a deliberate fault.
 
@@ -303,7 +305,7 @@ envFrom:
 
 *Checkpoint 3:* Both workloads are Running, but the backend cannot retrieve data. **Do not load park data or change any ports yet.**
 
-== Mission 4: Investigate with Lightspeed (6 minutes)
+== Mission 4: Investigate with Lightspeed (4 minutes)
 
 . Open *OpenShift Lightspeed* -> *Troubleshooting*.
 +
@@ -330,7 +332,7 @@ image::module01-s07-lightspeed-root-cause.png[Live Lightspeed 2 diagnosis showin
 
 *Checkpoint 4:* Lightspeed identifies that `mongodb-nationalparks` sends traffic to `27018`, but MongoDB listens on `27017`.
 
-== Mission 5: Repair the MongoDB Service (5 minutes)
+== Mission 5: Repair the MongoDB Service (3 minutes)
 
 . Go to *Networking* -> *Services* -> `mongodb-nationalparks` -> *YAML* -> *Edit*.
 . Find `spec.ports` and change **only** `targetPort` to `27017`:
@@ -374,7 +376,7 @@ Expected: `27017 -> 27017`. No MongoDB Pod restart is required.
 
 *Checkpoint 5:* The API can now read MongoDB data. You repaired one Service field without changing the image, credentials or Pod labels.
 
-== Mission 6: Verify the National Parks map (5 minutes)
+== Mission 6: Verify the National Parks map (3 minutes)
 
 . Open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[National Parks data,window=_blank]. It should still return park records.
 . Open https://parksmap-{user}-demo.{openshift_cluster_ingress_domain}/ws/backends/list[ParksMap backend list,window=_blank]. It should include `nationalparks`, not `[]`.
@@ -390,7 +392,7 @@ image::module01-s02-topology.png[OpenShift Topology showing ParksMap, Python bac
 
 *Checkpoint 6:* The Route works, backend discovery works and the map shows markers. **Mission complete!**
 
-== Mission complete: You recovered National Parks (2 minutes)
+== Mission complete: You recovered National Parks (1 minute)
 
 [cols="2,3",options="header"]
 |===
