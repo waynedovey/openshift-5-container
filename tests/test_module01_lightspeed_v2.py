@@ -64,6 +64,26 @@ class LightspeedWorkshopTests(unittest.TestCase):
         self.assertIn("name: National Parks API", config)
         self.assertIn("https://national-parks-app-${USER}-demo.${DOMAIN}", config)
 
+    def test_module_one_timing_is_28_minutes(self):
+        import re
+        guide = GUIDE.read_text()
+        index = (ROOT / "content/modules/ROOT/pages/index.adoc").read_text()
+        headings = re.findall(
+            r"^== Mission [0-6]:[^\n]*\((\d+) minutes?\)$",
+            guide, re.MULTILINE
+        )
+        signoff = re.search(
+            r"^== Mission complete:[^\n]*\((\d+) minutes?\)$",
+            guide, re.MULTILINE
+        )
+        self.assertEqual([int(x) for x in headings], [1, 5, 5, 6, 4, 3, 3])
+        self.assertIsNotNone(signoff)
+        self.assertEqual(sum(map(int, headings)) + int(signoff.group(1)), 28)
+        self.assertIn("25–30-minute", guide)
+        self.assertIn("| 0–1 | 1–6 | 6–11 | 11–17 | 17–21 | 21–24 | 24–27 | 27–28 min", guide)
+        self.assertIn("| 25–30 min (rehearsal target)", index)
+        self.assertNotIn("50-minute console-first", index)
+
     def test_end_to_end(self):
         guide = GUIDE.read_text()
         self.assertIn("/ws/data/load", guide)
