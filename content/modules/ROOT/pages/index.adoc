@@ -3,7 +3,7 @@
 
 Work through the responsibilities of a platform engineer: establish an application baseline, understand GitOps, apply tenant and resource controls, investigate an incident, and deliver a verified fix.
 
-Module 1 is *Mission National Parks*: a 50-minute console-first workshop. Students deploy the frontend, Python API and working MongoDB 8, then deliberately break the Python Service selector. Lightspeed 2.0 helps find the mismatch; students repair one field in the console and verify the map.
+Module 1 is *Mission National Parks*: a 50-minute console-first workshop. Students deploy the frontend, Python API and working MongoDB 8, encounter an incorrect MongoDB Service target port. Lightspeed 2.0 helps diagnose the connection failure; students repair one Service field, load data and verify the map.
 
 The workshop is designed for up to 30 participants on a shared OpenShift cluster. Each participant uses an assigned identity and application namespace.
 
@@ -24,7 +24,7 @@ Your login username is `{user}`. For Module 1, select project **`{user}-demo`**.
 
 [NOTE]
 ====
-Module 1 uses the existing `{user}-demo` project. Students create their database Secret and deploy three components without changing the shared Argo CD and Gitea services. Some screenshots need recapturing for the new Service-selector exercise.
+Module 1 uses the existing `{user}-demo` project. Students create their database Secret and deploy three components without changing the shared Argo CD and Gitea services. Some screenshots may need updating for the MongoDB Service-port exercise.
 
 This workshop *targets* OpenShift *{ocp_version}* and OpenShift Lightspeed *2.0*. The actual cluster release and installed Lightspeed version come from external provisioning, not this Showroom attribute. Instructors must verify both on the live cluster. OpenShift 5.0 documents Kubernetes 1.36 and general availability of the MCP server for Red Hat OpenShift; optional toolsets and agentic integrations have separate requirements and support statuses.
 ====
@@ -36,8 +36,8 @@ This workshop *targets* OpenShift *{ocp_version}* and OpenShift Lightspeed *2.0*
 * Import the Python `nationalparks` API from Git and observe its build in Topology.
 * Create a MongoDB Secret with your own passwords in your assigned project.
 * Import a working MongoDB 8 Deployment, bootstrap ConfigMap and internal Service through the console YAML editor.
-* Connect the backend to your Secret and observe the intentional driver/database version incompatibility.
-* Load park data, deliberately break the Python backend Service selector, ask Lightspeed to investigate, then fix the selector in the console.
+* Connect the backend to your Secret and observe the deliberately incorrect MongoDB Service target port.
+* Use Lightspeed to investigate the MongoDB connection failure, repair its Service port and load park data.
 * Complete a workload-readiness card and continue into GitOps onboarding.
 
 This module deliberately distinguishes new OpenShift 5 appearance/MCP capabilities from long-standing Deployments, Routes, Builds, YAML import and GitOps.
@@ -50,7 +50,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 
 | xref:module-01-whats-new-in-ocp5.adoc[1 — Mission National Parks]
 | 50 min (rehearsal target)
-| Native console deployment: frontend, Git backend, student-created Secret, working MongoDB 8, broken backend Service selector and Lightspeed-guided repair.
+| Native console deployment: frontend, Git backend, student-created Secret, working MongoDB 8, broken MongoDB Service target port and Lightspeed-guided repair.
 | Console deployment draft; test images/builds and recapture screenshots
 
 | xref:module-02-gitops-onboarding-multitenancy.adoc[2 — GitOps Onboarding & Multitenancy]
@@ -74,7 +74,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | National Parks draft; rehearsal required
 |===
 
-*Planned full workshop: approximately 2 hours 20 minutes.* Module 1 targets 50 minutes after registry pull, backend build, student Secret creation, discovery RBAC, a deliberate Service selector fault, Lightspeed 2.0 read approvals and manual console Service repair have been rehearsed under student identities. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 must be updated to adopt the resources created through the native console.
+*Planned full workshop: approximately 2 hours 20 minutes.* Module 1 targets 50 minutes after registry pull, backend build, student Secret creation, discovery RBAC, a deliberate MongoDB Service port fault, Lightspeed 2.0 read approvals and manual console Service repair have been rehearsed under student identities. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 must be updated to adopt the resources created through the native console.
 
 == Release Topics Connected to the Application
 
@@ -83,7 +83,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | Topic | Workshop connection
 | Project Felt console design | Experience the updated OpenShift 5 visual style while using familiar navigation.
 | Kubernetes and runtime foundation | Compare the actual platform release with the documented Kubernetes 1.36 / CRI-O foundation for OpenShift 5.0.
-| MCP server — GA in 5.0 | Use Lightspeed 2.0 Troubleshooting to inspect Service selectors, Pod labels and Route connectivity. Students apply the one-field console fix.
+| MCP server — GA in 5.0 | Use Lightspeed 2.0 Troubleshooting to inspect MongoDB Services, Pods, EndpointSlices and backend logs. Students apply a one-field Service port fix.
 | HAProxy version selection | Check normal ingress behaviour and identify the serving router's `status.effectiveHAProxyVersion`: 3.2 by default, or the supported 2.8 migration option.
 | Mirrored image credentials — GA | Inspect application image references and explain the administrator-configured project-scoped credential path for mirrors.
 | Agentic update assessment — Technology Preview | An optional instructor demonstration uses the Lightspeed-driven Cluster Update page. The Agentic Operator is a separate prerequisite.
@@ -101,7 +101,7 @@ Unified console navigation predates OpenShift 5. The core Module 1 exercise uses
 | Assigned workshop project | `{user}-demo` — an existing project which may already host Argo CD, Gitea and Showroom. No National Parks workloads should exist yet. The instructor must verify Secret-creation and discovery permissions in this exact namespace.
 | National Parks | **Not pre-deployed.** The instructor prepares namespace-scoped discovery RBAC and validates the frontend image, Python source builder, MongoDB image and students' permission to create Secrets. **Students create their own database Secret**, deploy the three components and initialize disposable data.
 | Application grouping | Workload and pod labels identify the three National Parks components together.
-| AI integration | Lightspeed Operator 2.0 with live MCP read tools. Students manually repair the backend Service selector; write tools are not required.
+| AI integration | Lightspeed Operator 2.0 with live MCP read tools. Students manually repair the MongoDB Service target port; write tools are not required.
 | Observability | Permission to inspect application logs and workload status; additional metrics are used in later modules.
 | GitOps | For Module 2, the instructor must provide a matching Git source of truth and an adoption workflow targeting `{user}-demo`. The present Module 2 guide still assumes prior ownership and may target a different namespace; it requires revision before delivery.
 |===
@@ -116,7 +116,7 @@ This workshop is intended for intermediate platform engineers and site reliabili
 
 Sign in as `{user}` in both the console and terminal; run `oc whoami` and verify it returns `{user}` before patching anything in `{user}-demo`. Never use the default Showroom ServiceAccount for workshop commands.
 
-Module 1 starts in `{user}-demo`. Students deploy the frontend, Python backend and working MongoDB 8, load park data once, deliberately break the Python backend Service selector, diagnose it with Lightspeed and repair it in the console.
+Module 1 starts in `{user}-demo`. Students deploy the frontend, Python backend and working MongoDB 8, investigate the preconfigured MongoDB port fault with Lightspeed, repair it in the console, then load park data once.
 
 == Reference Material
 

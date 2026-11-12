@@ -3,14 +3,14 @@
 :page-toclevels: 2
 :experimental:
 
-Deploy the National Parks frontend, Python API and MongoDB 8 in your existing workshop project. Then deliberately break one Service selector, use Lightspeed to find the problem and repair it in the OpenShift console. Leave the existing Argo CD, Gitea and workshop workloads alone.
+Deploy the National Parks frontend, Python API and MongoDB 8 in your existing workshop project. The MongoDB Service contains a deliberately incorrect port. Use Lightspeed to diagnose the connection failure, repair the Service and load park data. Leave Argo CD, Gitea and other workshop workloads alone.
 
 This is a *50-minute, console-first workshop* using *OpenShift Lightspeed 2.0*. Lightspeed investigates; you apply the repair.
 
 [cols="1,1,1,1,1,1,1,1",options="header"]
 |===
 | 0–2 | 2–11 | 11–17 | 17–27 | 27–33 | 33–43 | 43–48 | 48–50 min
-| Select project | Frontend + discovery permissions | Python API | MongoDB 8 + test data + break Service | Diagnose with Lightspeed | Repair Service in console | Verify map | Sign-off
+| Select project | Frontend + discovery permissions | Python API | MongoDB 8 + wrong port | Diagnose with Lightspeed | Repair MongoDB Service | Load data + map | Sign-off
 |===
 
 [IMPORTANT]
@@ -260,9 +260,9 @@ The frontend discovers the API using **Routes and Services** labelled `type=park
 
 *Checkpoint 2:* The Python backend BuildConfig has produced a *Complete* build, the backend Pod is *Running*, the Service and Route exist, and the Route's URL displays **Welcome to the National Parks data service.** Park data will be added later.
 
-== Mission 3: Connect MongoDB and create the failure (10 minutes)
+== Mission 3: Deploy MongoDB and observe the failure (10 minutes)
 
-Deploy a *working* MongoDB 8 database, load park data, then break the backend Service on purpose.
+Deploy MongoDB 8. The database Pod will start, but the Python backend cannot reach it because the MongoDB Service contains a deliberate fault.
 
 . In project `{user}-demo`, open *Workloads* -> *Secrets* -> *Create* -> *Key/value secret*. Name it `nationalparks-mongodb-parameters`. Add these five keys:
 
@@ -281,16 +281,16 @@ image::module01-s09a-secret-create-menu.png[Create a key/value Secret, width=800
 +
 [IMPORTANT]
 ====
-Do not copy passwords from screenshots or paste them into Lightspeed. If the Secret already exists, ask your instructor before reusing it.
+Never copy passwords from screenshots or paste them into Lightspeed.
 ====
 
-. Select *Create*. Then select *Quick create* (`+`) -> *Import YAML*. Copy and create the three resources below: a bootstrap ConfigMap, MongoDB Deployment and internal Service.
+. Select *Create*. Choose *Quick create* (`+`) -> *Import YAML*. Import these three resources: a bootstrap ConfigMap, MongoDB Deployment and MongoDB Service.
 +
 [source,yaml]
 ----
 include::example$module01-mongodb.yaml[]
 ----
-. Open *Workloads* -> *Deployments* -> `nationalparks` -> *YAML* -> *Edit*. Add this to the existing application container, alongside `image` and `ports`:
+. Open your Python backend Deployment (typically `nationalparks`) under *Workloads* -> *Deployments* -> *YAML* -> *Edit*. Add this to the application container, beside `image` and `ports`:
 +
 [source,yaml]
 ----
@@ -298,29 +298,12 @@ envFrom:
   - secretRef:
       name: nationalparks-mongodb-parameters
 ----
-. Save. Wait for `mongodb-nationalparks` and `nationalparks` to be Ready.
-. Open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/load[Load National Parks data,window=_blank] **once** to seed the disposable database. Then open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[View National Parks data,window=_blank] and confirm it contains park records. **Do not repeat the load request.**
-. **Create the fault:** In *Networking* -> *Services*, open the *Python backend Service* (`national-parks-app` or your actual backend name), **not** `mongodb-nationalparks`. Choose *YAML* -> *Edit*. Under `spec.selector`, find the existing `app` value and change **only that value** to:
-+
-[source,yaml]
-----
-app: intentionally-broken-backend
-----
-+
-Keep the remaining selector keys and all other fields unchanged. Save.
-. Refresh https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[National Parks data,window=_blank]. It should now fail because the Service no longer selects its Pods. The Pods can still be *Running*.
+. Save. Wait for the MongoDB and Python backend Pods to be *Running* and *Ready*.
+. Open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[View National Parks data,window=_blank]. The backend should **not return park records** while its database connection is broken. It may show an error or timeout.
 
-*Checkpoint 3 — mandatory:* Before opening Lightspeed, confirm that the backend Service has **no ready endpoints** but the backend Pod is Running. In the Showroom terminal:
-+
-[source,bash,subs="attributes+"]
-----
-oc get svc national-parks-app -n {user}-demo -o jsonpath='{.spec.selector}{"\n"}'
-oc get endpointslice -n {user}-demo -l kubernetes.io/service-name=national-parks-app
-----
-+
-The selector must contain `app=intentionally-broken-backend`, and the EndpointSlice must show no ready backend addresses. If your backend Service has a different name, use that name in both commands. **Do not start Lightspeed until this deliberate failure is present.**
+*Checkpoint 3:* Both workloads are Running, but the backend cannot retrieve data. **Do not load park data or change any ports yet.**
 
-== Mission 4: Find the problem with Lightspeed (6 minutes)
+== Mission 4: Investigate with Lightspeed (6 minutes)
 
 . Open *OpenShift Lightspeed* -> *Troubleshooting*.
 +
@@ -329,52 +312,49 @@ image::module01-s09k-lightspeed-mode.png[Select Lightspeed Troubleshooting, widt
 +
 [source,text,subs="attributes+"]
 ----
-My National Parks application stopped working.
+My National Parks application cannot retrieve park data.
 
-Use live Kubernetes tools to check the Pods, Services and Routes
-in namespace {user}-demo. Find the cause and explain how to fix it.
+Use live Kubernetes tools to inspect Pods, Services and logs
+in namespace {user}-demo. Find the cause and suggest the simplest fix.
 
 Do not read Secrets or change anything.
 ----
-. Review the answer. If approval is requested, approve *only* read operations in your namespace. Lightspeed should find this mismatch:
-+
-[source,yaml]
-----
-# Service: national-parks-app (example)
-selector:
-  app: intentionally-broken-backend
-  deployment: national-parks-app
-
-# Backend Pod labels
-app: national-parks-app
-deployment: national-parks-app
-----
-+
-The Service has **no endpoints**, even though the backend Pod is *Running*. This selector mismatch was correctly diagnosed in a previous live Lightspeed 2.0 rehearsal with Claude Sonnet 4.6. If Lightspeed instead reports missing ParksMap RBAC, repeat Checkpoint 1; if it reports matching selectors, repeat Checkpoint 3.
+. Review the response. If asked, approve *only* read operations in your namespace.
 
 [TIP]
 ====
-*AI check:* Lightspeed may suggest more than one fix. Confirm the selector mismatch in the console before applying changes.
+*AI check:* Compare the MongoDB Service with the MongoDB Pod. The Service exposes `27017`, but its `targetPort` is `27018`. MongoDB listens on `27017`. The Pod can be Ready even though the Service forwards to the wrong port. Verify the evidence yourself; do not change Secrets or images.
 ====
 
-*Checkpoint 4:* You can explain why the backend Pod can be Ready while its Route is unavailable.
+*Checkpoint 4:* You can explain why the healthy MongoDB Pod is unreachable through its Service.
 
-== Mission 5: Repair the Service (5 minutes)
+== Mission 5: Repair the MongoDB Service (5 minutes)
 
-. In *Networking* -> *Services*, open the Python backend Service (`nationalparks` or `national-parks-app`) -> *YAML* -> *Edit*.
-. Under `spec.selector`, change **only** the `app` value back to the actual value on your backend Pod (typically `national-parks-app`):
+. Go to *Networking* -> *Services* -> `mongodb-nationalparks` -> *YAML* -> *Edit*.
+. Find `spec.ports` and change **only** `targetPort` to `27017`:
 +
 [source,yaml]
 ----
-selector:
-  app: national-parks-app
-  deployment: national-parks-app
+ports:
+  - name: mongodb
+    port: 27017
+    targetPort: 27017
+    protocol: TCP
 ----
 +
-Keep any other existing selector keys unchanged.
-. Select *Save*. Check the Service has backend endpoints again. Open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[National Parks data,window=_blank] to verify the Route works. No Pod restart is needed.
+Keep the selector and every other field unchanged. Select *Save*.
+. Verify the port in the Showroom terminal:
++
+[source,bash,subs="attributes+"]
+----
+oc get svc mongodb-nationalparks -n {user}-demo \
+  -o jsonpath='{.spec.ports[0].port}{" -> "}{.spec.ports[0].targetPort}{"\n"}'
+----
++
+Expected: `27017 -> 27017`. No MongoDB Pod restart is required.
+. Open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/load[Load National Parks data,window=_blank] **once** to populate the disposable database. Then open https://national-parks-app-{user}-demo.{openshift_cluster_ingress_domain}/ws/data/all[View National Parks data,window=_blank] and confirm park records appear.
 
-*Checkpoint 5:* You fixed one Service selector value without touching the database or restarting Pods.
+*Checkpoint 5:* The API can now read MongoDB data. You repaired one Service field without changing the image, credentials or Pod labels.
 
 == Mission 6: Verify the National Parks map (5 minutes)
 
@@ -398,14 +378,14 @@ image::module01-s02-topology.png[OpenShift Topology showing ParksMap, Python bac
 |===
 | Check | Expected
 | Project | `{user}-demo`
-| Database | MongoDB 8 Ready
-| Python backend | Service selector matches Pods; Route works
+| Database | MongoDB 8 Ready; Service points to port 27017
+| Python backend | Connected to MongoDB; Route returns park records
 | Park data | `/ws/data/all` returns records
 | Frontend | `/ws/backends/list` finds backend; markers visible
-| Lightspeed | Live read-only investigation; student repaired the selector
+| Lightspeed | Read-only diagnosis; student repaired MongoDB Service port
 |===
 
-You used Lightspeed to investigate a Kubernetes Service fault and repaired it with one change in the OpenShift console. In Module 2, you will explore onboarding the application into GitOps; Argo CD must not overwrite these student-created resources unexpectedly.
+You used Lightspeed to investigate a MongoDB Service port mismatch and repaired it with one change in the OpenShift console. In Module 2, you will explore onboarding the application into GitOps; Argo CD must not overwrite these student-created resources unexpectedly.
 
 xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps Onboarding & Multitenancy]
 
@@ -414,12 +394,12 @@ xref:module-02-gitops-onboarding-multitenancy.adoc[Continue to Module 2: GitOps 
 [cols="2,3",options="header"]
 |===
 | Symptom | Check
-| Can't see `{user}-demo` | Sign in with your student account; ask the instructor rather than creating another project.
+| Cannot see `{user}-demo` | Sign in as your own student account.
 | Python build fails | Open *Builds* -> *Logs* and inspect the error.
-| MongoDB does not start | Check the Secret's name and keys, ConfigMap and Pod events; don't share passwords.
-| Backend Route fails after Mission 3 | Expected. The Python backend Service selector deliberately matches no Pods.
-| Lightspeed cannot inspect resources | Check the exact namespace in the prompt and student read permissions.
-| Backend Route still fails after Mission 5 | Compare `spec.selector` on the backend Service with the backend Pod's labels.
-| API returns data but map is blank | Check `parksmap-discovery` ServiceAccount and `type=parksmap-backend` on backend Service and Route.
+| MongoDB Pod not Ready | Check the Secret name, bootstrap ConfigMap and Pod events.
+| Backend cannot retrieve data in Mission 3 | Expected. Investigate with Lightspeed before fixing the MongoDB Service.
+| Lightspeed cannot inspect resources | Verify namespace and read permissions.
+| Backend still cannot connect after Mission 5 | Confirm the MongoDB Service `port` and `targetPort` are both `27017`, and inspect backend logs.
+| API returns records but map is blank | Check the `parksmap-discovery` ServiceAccount and `type=parksmap-backend` labels on backend Service and Route.
 |===
 

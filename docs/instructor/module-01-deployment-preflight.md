@@ -1,111 +1,76 @@
-# Module 1 instructor preflight: Service selector troubleshooting
+# Module 1 instructor preflight: MongoDB Service port
 
-Students deploy ParksMap, Python National Parks and **working MongoDB 8**.
-After loading park records, they deliberately change the Python backend
-**Service** selector (`spec.selector.app`) to `intentionally-broken-backend`.
-Lightspeed 2.0 reads live Pods, Services and Routes to diagnose the missing
-endpoints. Students restore the selector in the console. **No MCP write tools
-or MongoDB image updates are required.**
+Students deploy the National Parks frontend, Python API and MongoDB 8.
+**Intentional fault:** MongoDB listens on port `27017`, but its Service
+forwards to `targetPort: 27018`. The MongoDB Pod can be Ready while the API
+cannot connect. Students use Lightspeed 2.0 for read-only investigation and
+repair the MongoDB Service manually.
 
 ## Before class
 
-1. **Terminal authentication is required.** The Showroom terminal initially uses
-   `system:serviceaccount:user-<guid>-showroom:showroom`, which may have no
-   permission to patch Deployments in `user-<guid>-demo`. Students must
-   use the OpenShift console's *Copy login command*, log in as
-   `user-<guid>`, verify `oc whoami` and `oc auth can-i patch
-   deployments.apps -n user-<guid>-demo` returns `yes`.
-   Do not expand the Showroom ServiceAccount's permissions.
-2. Check that Argo CD and Gitea already exist in the project. **Do not
-   delete them**, and make sure Argo CD is not automatically reconciling
-   the student-created National Parks resources.
-3. Check permissions to create Secrets, ConfigMaps, Deployments, Services,
-   Routes and the ParksMap discovery Role/RoleBinding, plus permission to
-   **edit the backend Service** and read Kubernetes resources with Lightspeed.
-4. Verify the ParksMap image can pull, the `nationalparks-py` Dockerfile
-   builds, and the MongoDB 8 image
+1. Authenticate the Showroom terminal as the assigned student, **not** the
+   Showroom ServiceAccount. Verify `oc whoami` returns `user-<guid>`.
+2. Ensure the student can patch or edit Services in `user-<guid>-demo`.
+   Do not grant broad permissions to the Showroom ServiceAccount.
+3. Ensure the `parksmap-discovery` ServiceAccount, Role and RoleBinding exist.
+   The `parksmap` Deployment must use that ServiceAccount.
+4. Confirm the frontend image pulls, Python backend builds, and
    `quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim` starts.
-   MongoDB uses disposable `emptyDir` storage and a per-student Secret.
-5. **Mandatory before students open the map:** verify that the `parksmap-discovery`
-   ServiceAccount, Role and RoleBinding exist in each student project. The RoleBinding
-   alone is insufficient. Check that the `parksmap` Deployment and current Pod
-   use `serviceAccountName: parksmap-discovery`. Never grant `view` to `default`.
-   Also verify the backend Service and Route have `type=parksmap-backend`.
-6. Load disposable data by visiting the backend `/ws/data/load` **once**.
-   Confirm `/ws/data/all` contains records **before breaking connectivity**.
-7. Record the **actual backend Service name** (`national-parks-app` in the
-   current lab, or the name actually generated), its `spec.selector`, and matching Pod labels.
-   Test the one-value change below using a fresh student. Do not modify the
-   MongoDB Service or Deployment.
+5. Check the database Secret exists, with five correct keys, and the Python
+   backend uses `envFrom.secretRef.name: nationalparks-mongodb-parameters`.
+   Do not expose credentials.
+6. Ensure Argo CD auto-sync will not overwrite student-created National Parks
+   resources; leave pre-provisioned Argo CD and Gitea workloads alone.
 
-## Mandatory student prechecks
+## Expected broken state
 
-After the RBAC manifest is applied, the student patches the Deployment
-as their own account (never the Showroom ServiceAccount):
-
-```bash
-oc patch deployment parksmap -n user-<guid>-demo --type=merge \
-  -p '{"spec":{"template":{"spec":{"serviceAccountName":"parksmap-discovery"}}}}'
-oc rollout status deployment/parksmap -n user-<guid>-demo
-```
-
-Require output `deployment.apps/parksmap patched` before trusting the
-rollout status. A successful rollout can refer to an unchanged Deployment.
-
-After Mission 1, the student verifies:
-
-```bash
-oc get deployment parksmap -n user-<guid>-demo \
-  -o jsonpath='{.spec.template.spec.serviceAccountName}{"\n"}'
-```
-
-Expected: `parksmap-discovery`. A blank result means the default ServiceAccount
-is still in use; correct the Deployment before moving on.
-
-After deliberately breaking the backend Service selector in Mission 3,
-confirm the Service has no **ready endpoints** and that its Pods remain Running.
-Never proceed to the Lightspeed prompt while the Service still matches Pods.
-
-## Rehearse the fault and repair
-
-In the backend Service YAML, replace **only** the existing
-`spec.selector.app` value:
+The manifest `content/modules/ROOT/examples/module01-mongodb.yaml` imports
+a MongoDB Deployment and an internal Service. Verify:
 
 ```yaml
-spec:
-  selector:
-    app: intentionally-broken-backend
+# MongoDB Deployment container
+containerPort: 27017
+
+# MongoDB Service
+port: 27017
+targetPort: 27018  # deliberately incorrect
 ```
 
-Keep other selector entries unchanged. The backend Service should have no
-matching endpoints, while the Python Pod remains Running and its Route
-stops serving the backend.
+Kubernetes can still mark the MongoDB Pod Ready, and the Service may still
+have ready EndpointSlices. **Do not diagnose this as a selector mismatch.**
+The Service forwards traffic to the wrong port.
 
-Run the short read-only Lightspeed prompt in Mission 4. Require live evidence
-of the mismatched Service selector and backend Pod labels. The student then
-restores `spec.selector.app` to the value recorded from the matching Pods.
-Verify:
+The backend data endpoint at
+`https://national-parks-app-<user>-demo.<ingress-domain>/ws/data/all`
+should not return park records. Do not use `/ws/data/load` until the repair.
 
-- Backend Route `https://national-parks-app-<user>-demo.<ingress-domain>/ws/data/all` returns nonempty park data.
-- ParksMap `https://parksmap-<user>-demo.<ingress-domain>/ws/backends/list` finds the Python backend.
-- The map displays park markers.
+## Lightspeed and repair
 
-The Service fault is repeatable without deleting Pods, Secrets or data.
-**Do not reset the whole student namespace.**
+Have a fresh student run Mission 4's short read-only prompt. Check whether
+Lightspeed identifies the port mismatch from live Services, Pods,
+EndpointSlices and backend logs. **This new scenario is not yet validated
+against Lightspeed 2.0.**
 
-## Limitations
+In Mission 5, students use the console to change **only**
+`mongodb-nationalparks` Service `spec.ports[0].targetPort` to `27017`.
 
-- This is a static manifest contract, not a completed live-cluster smoke test.
-  Rehearse with two fresh student accounts.
-- The built-in Lightspeed 2.0 MCP deployment may provide read tools only;
-  students use the OpenShift console for the Service update.
-- Keep Argo CD auto-sync disabled before Module 2 onboarding; otherwise
-  GitOps could immediately reverse the deliberate fault.
-- Existing tenant quotas include Argo CD and Gitea. Do not introduce an
-  additional restrictive quota in Module 1.
+Verify in the student terminal:
 
-## Files
+```bash
+oc get svc mongodb-nationalparks -n user-<guid>-demo \
+  -o jsonpath='{.spec.ports[0].port}{" -> "}{.spec.ports[0].targetPort}{"\n"}'
+```
 
-- [Student guide](../../content/modules/ROOT/pages/module-01-whats-new-in-ocp5.adoc)
-- [MongoDB 8 manifest](../../content/modules/ROOT/examples/module01-mongodb.yaml)
-- [ParksMap discovery RBAC](../../content/modules/ROOT/examples/module01-parksmap-discovery.yaml)
+Expected: `27017 -> 27017`. Then load disposable park data **once** via
+`/ws/data/load`, verify `/ws/data/all` contains records, and open ParksMap
+to confirm markers appear.
+
+**Do not** change the MongoDB image, Secrets, Pod labels, Python backend
+Service selector, or restart the healthy MongoDB Pod.
+
+## Notes
+
+- The lab uses live Kubernetes read tools; MCP write tools are not required.
+- Run the scenario with two fresh student accounts before release.
+- Tenant quotas include Argo CD and Gitea; do not add a restrictive namespace
+  quota in Module 1.

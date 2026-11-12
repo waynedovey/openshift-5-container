@@ -1,4 +1,4 @@
-"""Validate the working MongoDB 8 manifest used in Module 1."""
+"""Validate MongoDB 8 with the deliberate Service targetPort mismatch."""
 import unittest
 from pathlib import Path
 import yaml
@@ -31,9 +31,13 @@ class MongoDBManifestTests(unittest.TestCase):
         self.assertEqual(mounts["app-user-bootstrap"]["mountPath"], "/docker-entrypoint-initdb.d")
         self.assertIn("createUser(", self.by_kind["ConfigMap"]["data"]["create-app-user.js"])
 
-    def test_internal_database_service_matches_pod_labels(self):
+    def test_database_service_is_broken_but_matches_pods(self):
         service = self.by_kind["Service"]
         self.assertEqual(service["spec"]["type"], "ClusterIP")
+        self.assertEqual(service["spec"]["ports"][0]["port"], 27017)
+        self.assertEqual(service["spec"]["ports"][0]["targetPort"], 27018)
+        self.assertEqual(self.container["ports"][0]["containerPort"], 27017)
+        self.assertEqual(self.container["readinessProbe"]["tcpSocket"]["port"], "mongodb")
         pod_labels = self.deployment["spec"]["template"]["metadata"]["labels"]
         for key, value in service["spec"]["selector"].items():
             self.assertEqual(pod_labels[key], value)

@@ -1,5 +1,5 @@
 # Working MongoDB 8 for the National Parks workshop.
-# Students diagnose a separate, deliberately broken Python backend Service selector.
+# Intentional lab fault: MongoDB Service targetPort is 27018 but mongod listens on 27017.
 # This is an emptyDir-backed disposable database; never store passwords in Git.
 apiVersion: v1
 kind: ConfigMap
@@ -109,5 +109,5 @@ spec:
   ports:
     - name: mongodb
       port: 27017
-      targetPort: mongodb
+      targetPort: 27018
       protocol: TCP

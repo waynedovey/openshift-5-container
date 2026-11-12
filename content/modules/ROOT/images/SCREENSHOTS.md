@@ -43,8 +43,8 @@ this three-image refresh and may still need separate review.
 | S06g | `module01-s06g-topology-resources.png` | Backend Topology → Resources | Running Pod and Complete build; **uploaded** |
 | S06h | `module01-s06h-backend-routes.png` | Networking → Routes | Backend Route `nationalparks` healthy alongside frontend Route; **uploaded** |
 | S06i | `module01-s06i-backend-welcome.png` | Open backend Route's Location URL | `Welcome to the National Parks data service.`; **uploaded** |
-| S07 | `module01-s07-lightspeed.png` | Lightspeed diagnoses the backend Service selector mismatch | Capture live read-only MCP evidence; **not yet captured** |
-| S08 | `module01-s08-health.png` | Final health in OCP 5 console | Three ready workloads, two Routes, working map after recovery |
+| S07 | `module01-s07-lightspeed.png` | Lightspeed diagnoses the incorrect MongoDB Service `targetPort` | Recapture with live read-only evidence of 27018 versus container port 27017; **not yet captured** |
+| S08 | `module01-s08-health.png` | Final health in OCP 5 console | Three ready workloads, MongoDB Service targetPort restored to 27017 and working map |
 
 The earlier `module01-s05-scale-before.png` and `module01-s06-scale-after.png`
 placeholders are no longer referenced in Module 1. S05a–S05i and S06a–S06i
@@ -82,22 +82,18 @@ replace those illustrative screenshots.
 - [ ] Each student creates `nationalparks-mongodb-parameters` in their **own**
       demo project using the console's key/value Secret form; both password
       values are private and different. The instructor does not pre-create it.
-- [ ] The deliberately broken legacy MongoDB image starts and reports 3.2.10;
-      the backend logs show an actual protocol incompatibility with PyMongo 4.18.1.
-- [ ] The built-in MCP `resources_create_or_update` tool is exposed to a student
-      account, obtains a human approval and changes only the MongoDB container
-      image to `quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim`.
-- [ ] The modern image starts under the namespace's restricted SCC, consumes
-      the student Secret and executes `mongodb-nationalparks-bootstrap` to
-      create an application user without exposing credentials.
-- [ ] Instructor confirms how this legacy ParksMap frontend handles denied
-      browser geolocation, and provides a privacy-respecting fallback.
-- [ ] The backend source build and both MongoDB image pulls were tested under
-      student-level permissions and complete within the allotted time.
-- [ ] The student-created Secret reference, backend Route discovery label, data load and map
-      marker display all work as documented.
-- [ ] Screenshots are authentic, legible and match the current Project Felt UI.
-- [ ] MCP screenshot captures an authenticated, approved write and successful
-      tool-result evidence, not just an AI claim. If no tool calls are available,
-      change the lab result accordingly.
+- [ ] MongoDB 8 runs Ready and uses the student-created Secret.
+- [ ] MongoDB container listens on port 27017; Service uses `port: 27017`
+      and the deliberately broken `targetPort: 27018`.
+- [ ] The Python backend cannot retrieve park data before the port repair.
+- [ ] Lightspeed reads live Pods, Services, EndpointSlices and logs, and
+      identifies the targetPort mismatch without changing resources.
+- [ ] Student restores MongoDB Service `targetPort: 27017` in the console.
+- [ ] Data loads **once** after repair, `/ws/data/all` returns records and
+      the ParksMap layer displays markers.
+- [ ] Instructor confirms how this legacy frontend handles browser location
+      permission and provides a privacy-respecting fallback.
+- [ ] Backend source build and MongoDB image pull work with student permissions.
+- [ ] Screenshots are authentic, legible and match current OpenShift 5 UI.
+- [ ] S07 documents the real read-only AI diagnosis (no MCP write requirement).
 - [ ] Two students independently finish in 45 minutes or the timing is revised.
