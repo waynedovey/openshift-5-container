@@ -1,3 +1,10 @@
+> **Permanent operator patch:** The tested-against-source unified diff lives at
+> [`patches/gitea-operator/0001-reconcile-changed-repositories.patch`](../../patches/gitea-operator/0001-reconcile-changed-repositories.patch).
+> See [application and rollout instructions](../../patches/gitea-operator/README.md).
+> The patch is **not deployed** until the RHPDS Gitea Operator maintainers
+> merge and release it. Continue using the selective workshop backfill helper
+> on existing clusters until the operator version is upgraded.
+
 # Gitea repository migration for existing workshop students
 
 ## Cause
@@ -40,41 +47,22 @@ during the brief spec toggle.
 
 ## Permanent code fix: RHPDS Gitea Operator
 
-In rhpds/gitea-operator, file roles/gitea-ocp/tasks/main.yml, the last
-guard on the Migrate repositories block currently reads:
+See the complete [`main.yml` patch](../../patches/gitea-operator/0001-reconcile-changed-repositories.patch).
 
-~~~yaml
-- not r_gitea_repos.resources[0].status.repoMigrationComplete | default(false) | bool
-~~~
+It calculates a fingerprint from the desired repository list and compares
+that value with the last *successfully migrated* fingerprint stored in
+`status.repoMigrationConfigHash`. A changed list (or an incomplete
+migration) triggers the existing per-repository GET-before-POST import tasks.
+It marks migration incomplete while processing and records the new hash
+alongside `repoMigrationComplete: true` **only after all imports succeed**.
+Existing repos are skipped. This also supports upgrading older Gitea CRs
+that don't yet have `repoMigrationConfigHash`.
 
-Replace it with a desired-repository-list fingerprint comparison:
-
-~~~yaml
-- (_gitea_repositories_list | default([]) | to_json | hash('sha256')) !=
-  (r_gitea_repos.resources[0].status.repoMigrationConfigHash | default(''))
-~~~
-
-After successfully checking/importing the desired repositories, persist
-the fingerprint next to the existing success flag:
-
-~~~yaml
-status:
-  repoMigrationComplete: true
-  repoMigrationConfigHash: "{{ _gitea_repositories_list | default([]) | to_json | hash('sha256') }}"
-~~~
-
-Preserve the existing checks for user/admin setup and
-migrate_repos.yml's per-repository GET-before-POST logic. With this fix,
-changing the repository list triggers a new idempotent migration, while
-unchanged configuration remains a no-op. The fingerprint is recorded
-only after all checks/imports succeed. Existing CRs without a fingerprint
-would recheck their existing repos once after upgrading the operator.
-
-This requires an operator source PR and release through its OLM deployment:
-updating the workshop chart alone cannot change operator behavior.
-Fingerprint checks do not recover a manually deleted repo when the desired
-list is unchanged; continuous drift correction requires periodic comparison
-against actual Gitea state.
+The operator code must be built and released through its OLM pipeline.
+The workshop Helm values already list both repos; changing those values
+alone won't fix an existing operator. Confirm import via Gitea's API after
+operator rollout. This reconciles *list changes*; restoring deleted repos
+without changing the list would require separate periodic drift detection.
 
 ## Validate
 
