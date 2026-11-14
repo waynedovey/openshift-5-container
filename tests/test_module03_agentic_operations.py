@@ -123,6 +123,13 @@ class AgenticApplicationOperationsTests(unittest.TestCase):
         self.assertNotIn("execution", resource["spec"])
         self.assertNotIn("verification", resource["spec"])
 
+    def test_student_quota_check_uses_applied_quota(self):
+        guide = MODULE.read_text()
+        self.assertIn("appliedclusterresourcequotas.quota.openshift.io", guide)
+        self.assertIn("oc describe appliedclusterresourcequota", guide)
+        self.assertIn("Shared quota details are restricted", guide)
+        self.assertNotIn("oc describe clusterresourcequota", guide)
+
     def test_agentic_fallback_and_instructor_gate(self):
         guide = MODULE.read_text()
         instructor = INSTRUCTOR.read_text()
