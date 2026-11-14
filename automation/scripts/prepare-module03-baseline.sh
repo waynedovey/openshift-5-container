@@ -66,7 +66,7 @@ while (($#)); do
 done
 [[ "$ONLY_DEMO" == true && "$ONLY_GITOPS" == true ]] && die 'Choose only one of --only-demo or --only-gitops.'
 
-for tool in oc git curl python3 cmp mktemp awk; do
+for tool in oc git curl python3 mktemp awk; do
   command -v "$tool" >/dev/null 2>&1 || die "Missing required command: $tool"
 done
 
@@ -274,7 +274,7 @@ sync_or_verify_gitea() {
       continue
     fi
     if [[ ! -f "$checkout/content/modules/ROOT/examples/module02-gitops/$file" ]] \
-       || ! cmp -s "$MANIFESTS/$file" "$checkout/content/modules/ROOT/examples/module02-gitops/$file"; then
+       || ! git diff --no-index --quiet -- "$MANIFESTS/$file" "$checkout/content/modules/ROOT/examples/module02-gitops/$file"; then
       count=$((count + 1))
       log "Source difference: $file"
     fi
