@@ -61,6 +61,13 @@ class Module03BaselineBootstrapTests(unittest.TestCase):
         self.assertIn('if [[ "$count" == 0 ]]; then', script)
         self.assertIn('"https://$api_host/ws/data/load"', script)
 
+    def test_minimal_lab_terminal_needs_no_cmp(self):
+        script = SCRIPT.read_text()
+        self.assertNotIn("cmp -s", script)
+        self.assertNotIn("python3 cmp mktemp", script)
+        self.assertIn("git diff --no-index --quiet --", script)
+        self.assertIn("for tool in oc git curl python3 mktemp awk", script)
+
     def test_student_gitea_requires_opt_in_to_update(self):
         script = SCRIPT.read_text()
         self.assertIn('if [[ "$SYNC_GITEA" != true ]]', script)
