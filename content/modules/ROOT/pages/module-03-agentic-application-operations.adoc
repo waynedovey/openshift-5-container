@@ -129,11 +129,16 @@ oc get deploy -n "$GITOPS_NAMESPACE" \
 +
 The GitOps stack is deliberately small. Your actual values may differ if the instructor has released a newer resource profile. Do not change requests or limits for this incident.
 
-. Check the *existing* ClusterResourceQuota shared by the two namespaces:
+. Check the *existing* quota shared by the two namespaces. Student accounts may not have permission to read the cluster-scoped +ClusterResourceQuota+ itself; use the project-scoped +AppliedClusterResourceQuota+ view when allowed:
 +
 [source,bash,role=execute]
 ----
-oc describe clusterresourcequota "tenant-$STUDENT"
+if oc auth can-i list appliedclusterresourcequotas.quota.openshift.io \
+  -n "$GITOPS_NAMESPACE" | grep -qx yes; then
+  oc describe appliedclusterresourcequota -n "$GITOPS_NAMESPACE"
+else
+  echo "Shared quota details are restricted for this student; ask your instructor."
+fi
 ----
 +
 The workshop quota covers both projects: 4 CPU requests, 8 CPU limits, 8Gi memory requests, 12Gi memory limits and 20Gi storage requests. Existing Gitea, Argo CD, Showroom and other components also consume quota. Quota *used* values are not the same as measured CPU or memory *usage*.
@@ -162,7 +167,7 @@ oc get endpoints parksmap -n "$GITOPS_NAMESPACE"
 
 [%collapsible]
 ====
-*Answer:* No. A limit is a maximum enforced at runtime; it does not measure live usage. Requests reserve scheduling capacity, limits cap consumption, and +oc describe clusterresourcequota+ reports charged requests/limits across both namespaces.
+*Answer:* No. A limit is a maximum enforced at runtime; it does not measure live usage. Requests reserve scheduling capacity, limits cap consumption, and the +AppliedClusterResourceQuota+ view (if authorized) reports charged requests/limits across both namespaces.
 ====
 
 == Mission 2: Deploy a deliberate ParksMap readiness fault (7 minutes)
@@ -452,7 +457,12 @@ curl -sS -o /dev/null -w 'National Parks API HTTP %{http_code}\n' \
 
 oc get deploy -n "$LAB_NAMESPACE"
 oc get deploy -n "$GITOPS_NAMESPACE"
-oc describe clusterresourcequota "tenant-$STUDENT"
+if oc auth can-i list appliedclusterresourcequotas.quota.openshift.io \
+  -n "$GITOPS_NAMESPACE" | grep -qx yes; then
+  oc describe appliedclusterresourcequota -n "$GITOPS_NAMESPACE"
+else
+  echo "Shared quota details are restricted for this student; ask your instructor."
+fi
 ----
 +
 HTTP 200 from ParksMap and a non-empty JSON array from the API are stronger evidence than +Running+ alone. If these checks fail, do not mark the incident resolved.
@@ -493,6 +503,7 @@ Fill out the comparison from your own environment:
 | Another failure appears: +OOMKilled+ or +NullPointerException+ | Inspect previous container logs and events. An OOM is distinct from this readiness incident; the original ParksMap discovery bug was caused by an incorrectly labelled API Route. The Route should *not* carry +type: parksmap-backend+.
 | +exceeded quota+ or no new Pod | Inspect the shared ClusterResourceQuota and Deployment events. Rollouts may temporarily need extra room. Do not change quota settings for this exercise.
 | Lightspeed cannot read the namespace | Confirm +oc whoami+, project selection, MCP integration, tool permissions and whether the AI actually invoked live tools. Use direct +oc+ evidence if not.
+| Shared quota is Forbidden | This is expected if the student lacks permission to list applied quota or view the cluster-scoped quota. Use +AppliedClusterResourceQuota+ when authorized, otherwise ask the instructor for a read-only quota summary; do not grant global RBAC.
 | AgenticRun API not present or creation Forbidden | Continue with Lightspeed Troubleshooting and the evidence comparison; ask instructor for an enabled demo, but do not grant global RBAC.
 | AgenticRun shows Proposed, Failed or NoActionRequired | Review actual run conditions and analysis output; phase and diagnosis vary. Do not claim remediation happened unless there is execution evidence.
 | AgenticRun observes the wrong namespace | Stop using the findings. Recheck the run request; the instructor may create a separate run with the correct target. Do not modify an existing request, which is immutable.
