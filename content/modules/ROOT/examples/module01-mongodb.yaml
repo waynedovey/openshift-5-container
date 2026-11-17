@@ -1,6 +1,29 @@
-# Module 1: disposable workshop database. The instructor must create
-# Secret/nationalparks-mongodb-parameters before students import this YAML.
-# Do not add real passwords or an external Route to this manifest.
+# Working MongoDB 8 for the National Parks workshop.
+# Students diagnose a separate, deliberately broken Python backend Service selector.
+# This is an emptyDir-backed disposable database; never store passwords in Git.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mongodb-nationalparks-bootstrap
+  labels:
+    app: national-parks-app
+    app.kubernetes.io/part-of: national-parks-app
+data:
+  create-app-user.js: |
+    // Executed only when the modern MongoDB image initializes an empty database.
+    // Credentials come from the student's Secret via container environment.
+    const database = process.env.MONGODB_DATABASE;
+    const username = process.env.MONGODB_USER;
+    const password = process.env.MONGODB_PASSWORD;
+    if (!database || !username || !password) {
+      throw new Error('Missing database name or application credentials');
+    }
+    db.getSiblingDB(database).createUser({
+      user: username,
+      pwd: password,
+      roles: [{role: 'readWrite', db: database}]
+    });
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,9 +48,7 @@ spec:
     spec:
       containers:
         - name: mongodb
-          # Image from the documented National Parks tutorial.
-          # Instructor must verify pull access/compatibility on the OCP 5 cluster.
-          image: registry.redhat.io/rhmap47/mongodb
+          image: quay.io/mongodb/mongodb-community-server:8.0.32-ubi9-slim
           imagePullPolicy: IfNotPresent
           ports:
             - name: mongodb
@@ -36,6 +57,19 @@ spec:
           envFrom:
             - secretRef:
                 name: nationalparks-mongodb-parameters
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: nationalparks-admin
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nationalparks-mongodb-parameters
+                  key: MONGODB_ADMIN_PASSWORD
+            - name: MONGO_INITDB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: nationalparks-mongodb-parameters
+                  key: MONGODB_DATABASE
           readinessProbe:
             tcpSocket:
               port: mongodb
@@ -48,11 +82,17 @@ spec:
             limits:
               memory: 1Gi
           volumeMounts:
-            - name: data
-              mountPath: /var/lib/mongodb/data
+            - name: modern-data
+              mountPath: /data/db
+            - name: app-user-bootstrap
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
       volumes:
-        - name: data
+        - name: modern-data
           emptyDir: {}
+        - name: app-user-bootstrap
+          configMap:
+            name: mongodb-nationalparks-bootstrap
 ---
 apiVersion: v1
 kind: Service

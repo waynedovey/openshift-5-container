@@ -1,0 +1,36 @@
+# Read-only discovery permissions for the legacy ParksMap frontend.
+# Import these objects into the student's existing {user}-demo project.
+# Namespace deliberately omitted: the console import project selects it.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: parksmap-discovery
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: parksmap-discovery
+rules:
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["route.openshift.io"]
+    resources: ["routes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    resourceNames: ["nationalparks", "national-parks-app"]
+    verbs: ["get", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: parksmap-discovery
+subjects:
+  - kind: ServiceAccount
+    name: parksmap-discovery
+    namespace: "{user}-demo"
+roleRef:
+  kind: Role
+  name: parksmap-discovery
+  apiGroup: rbac.authorization.k8s.io

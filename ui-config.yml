@@ -14,5 +14,9 @@ tabs:
     port: 443
   - name: OCP Console
     url: 'https://console-openshift-console.${DOMAIN}'
+  - name: ParksMap
+    url: 'https://parksmap-${USER}-demo.${DOMAIN}'
+  - name: National Parks API
+    url: 'https://national-parks-app-${USER}-demo.${DOMAIN}'
   - name: ArgoCD
     url: 'https://argocd-server-${USER}-demo.${DOMAIN}'
