@@ -362,12 +362,12 @@ Expected: `27017 -> 27018`. If the result is already `27017 -> 27017` or `27017 
 +
 [source,text,subs="attributes+"]
 ----
-Fix only the mongodb-nationalparks Service in {user}-demo:
-set its targetPort to the number 27017 and leave everything else unchanged.
-Show me the actual tool approval before making the change.
-If approval is unavailable, stop. Verify the port afterwards.
+Use resources_create_or_update to fix only the mongodb-nationalparks
+Service in {user}-demo: set targetPort to 27017; keep all else unchanged.
+Submit the tool call for my approval. Don't bypass approval.
+Verify the Service after the approved change.
 ----
-. Check for a separate *tool approval request* showing `resources_create_or_update` for `Service/mongodb-nationalparks` in *{user}-demo*. Review the proposed change. Approve *only* if the Service's `targetPort` changes to the numeric value `27017` and other fields remain untouched. If Lightspeed replies in text that it cannot request approval, **do not tell it to proceed**; use the manual recovery below.
+. Check for a separate *tool approval request* showing `resources_create_or_update` for `Service/mongodb-nationalparks` in *{user}-demo*. Review the proposed change. Approve *only* if the Service's `targetPort` changes to the numeric value `27017` and other fields remain untouched. The backend can issue the request even when the model mistakenly says it cannot. If Lightspeed only asks you to type `APPROVE` in chat, *do not treat that as a tool approval*; use the manual recovery below if no separate approval control appears.
 . Whether Lightspeed reports success or not, check the actual Service again:
 +
 [source,bash,subs="attributes+"]
