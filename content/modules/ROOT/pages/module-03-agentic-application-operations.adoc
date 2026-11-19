@@ -74,7 +74,7 @@ authenticated as {user}:
 [source,bash,subs="attributes+",role=execute]
 ----
 curl -fsSLo prepare-module03-baseline.sh \
-  https://raw.githubusercontent.com/rhpds/openshift-5-container-workspace/main/scripts/prepare-module03-baseline.sh
+  https://raw.githubusercontent.com/rhpds/openshift-5-container/main/automation/scripts/prepare-module03-baseline.sh
 bash prepare-module03-baseline.sh
 ----
 
@@ -83,7 +83,7 @@ National Parks stack in +{user}-demo+ and an Auto-Sync GitOps copy in
 +{user}-gitops+. If the *student Gitea main* is stale, the script refuses
 to modify workloads; use +--sync-gitea+ only when explicitly resetting
 that student's GitOps full-stack source. Existing workshop projects,
-Gitea and Argo CD must already be provisioned. The helper deliberately
+Gitea and Argo CD must already be provisioned. If the helper reports that the public +{user}/openshift-5-container-workspace+ repository is missing, stop: this is a Gitea bootstrap/migration issue rather than a bad password. Ask your instructor to reconcile the existing tenant's Gitea repositories; do not create another repo manually. The helper deliberately
 *does not* inject Module 3's readiness fault or create AgenticRuns.
 
 See +docs/instructor/module03-fast-forward-bootstrap.md+ for the preflight
