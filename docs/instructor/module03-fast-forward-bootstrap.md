@@ -14,7 +14,7 @@ From any writable directory, download the script:
 
 ```bash
 curl -fsSLo prepare-module03-baseline.sh \
-  https://raw.githubusercontent.com/rhpds/openshift-5-container-workspace/main/scripts/prepare-module03-baseline.sh
+  https://raw.githubusercontent.com/rhpds/openshift-5-container/main/automation/scripts/prepare-module03-baseline.sh
 bash prepare-module03-baseline.sh
 ```
 
@@ -22,11 +22,25 @@ bash prepare-module03-baseline.sh
 
 ```bash
 curl -fsSLo prepare-module03-baseline.sh \
-  https://raw.githubusercontent.com/<author>/openshift-5-container-workspace/<branch>/scripts/prepare-module03-baseline.sh
+  https://raw.githubusercontent.com/<author>/openshift-5-container/<branch>/automation/scripts/prepare-module03-baseline.sh
 bash prepare-module03-baseline.sh
 ```
 
 The script uses the canonical public `rhpds/openshift-5-container-workspace` **main** manifests for the app. You can override `SOURCE_URL` and `SOURCE_REF` to test another trusted source revision.
+
+If the student repository is missing (Gitea public API returns 404), this is commonly caused by an existing Gitea CR that already completed its one-time migration before the workspace repo was configured. Do not ask students to retry their passwords. As an instructor/admin, from the workshop repository, first run the read-only preflight:
+
+~~~bash
+bash automation/scripts/reconcile-gitea-repositories.sh -n user-xxxxx-demo
+~~~
+
+Check the Gitea CR's desired repository list contains `openshift-5-container-workspace`. If the preflight reports MISSING, backfill the configured repository using:
+
+~~~bash
+bash automation/scripts/reconcile-gitea-repositories.sh -n user-xxxxx-demo --apply
+~~~
+
+Do not delete Gitea, PostgreSQL or PVCs. See `docs/instructor/gitea-repository-migration.md` for the operator's one-time migration behavior.
 
 If the student's Gitea repository is old, the script stops **before creating or modifying any Kubernetes application workloads** and tells you which source files differ. To explicitly restore the latest healthy Module 2 manifests in *that student's own Gitea main*, rerun:
 
