@@ -73,10 +73,14 @@ should not return park records. Do not use `/ws/data/load` until the repair.
 
 ## Lightspeed and repair
 
-1. As a fresh student, complete Mission 4's **read-only** investigation.
-   Check that Lightspeed uses live Service and Deployment evidence to identify
-   `targetPort: 27018` versus container port `27017`. A named target port
-   `mongodb` is **valid**, so do not mistakenly call it a mismatch.
+1. As a fresh student, complete Mission 4's **read-only** investigation
+   using **only** `resources_get` for `Service/mongodb-nationalparks` and
+   `Deployment/mongodb-nationalparks` in `user-<guid>-demo`. Do not start
+   with a broad query listing Pods, Services and logs: Qwen3 repeatedly
+   misclassified one of those results as `data_exfiltration` in rehearsal.
+   Check that Lightspeed identifies `targetPort: 27018` versus container
+   port `27017`. A named target port `mongodb` is **valid**, so do not
+   mistakenly call it a mismatch.
 2. In Mission 5, the student sends the scoped write request, explicitly
    limiting the update to Service `mongodb-nationalparks` in their own
    `user-<guid>-demo` namespace and to numeric `spec.ports[0].targetPort: 27017`.
@@ -117,6 +121,13 @@ should not return park records. Do not use `/ws/data/load` until the repair.
 
 ### Live rehearsal evidence
 
+- **19 November 2026**, student `user-clcvz-demo`: broad "inspect Pods,
+  Services and logs" queries repeatedly hit a Qwen3 safety classifier
+  rejection (category `data_exfiltration`). A narrower two-resource
+  `resources_get` prompt successfully reported `targetPort: 27018`
+  versus container port `27017`. The filtered log excerpt did not identify
+  which specific result was rejected; keep the safety guardrail enabled and
+  use the focused read path in Mission 4.
 - **12 November 2026**, student `user-6k7ww-demo`: the Lightspeed
   Troubleshooting read path identified the port mismatch and recommended
   restoring port `27017`.
