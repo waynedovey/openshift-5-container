@@ -12,10 +12,12 @@ student screenshots, not old placeholder graphics.
 
 Live Lightspeed diagnosis screenshots S07, S07a and S07b were captured in
 `user-6k7ww-demo` on 12 November 2026. S07a and S07b document the **manual
-fallback**, not an approved MCP write. A 19 November 2026 rehearsal in
-`user-dpfvh-demo` confirmed the Service changed from `27018` to `27017`
-after Lightspeed reported a write, but a real approval-control screenshot is
-still required. S03, S04 and S08 may also need review.
+fallback**, not an approved MCP write. 19 November 2026 rehearsals in `user-dpfvh-demo` and `user-clcvz-demo`
+confirmed the Service could change from `27018` to `27017` following
+Lightspeed interactions. The `user-clcvz-demo` conversation also explicitly
+reported that it could not trigger approval, so **the approval flow remains
+unverified** despite the port change. A real approval-control screenshot is
+required before enabling classroom AI writes. S03, S04 and S08 may also need review.
 
 ## Capture list (use the exact filenames)
 
@@ -92,9 +94,10 @@ replace those illustrative screenshots.
 - [ ] MongoDB container listens on port 27017; Service uses `port: 27017`
       and the deliberately broken `targetPort: 27018`.
 - [ ] The Python backend cannot retrieve park data before the port repair.
-- [ ] Lightspeed reads live Pods, Services, EndpointSlices and logs, and
-      identifies the targetPort mismatch without changing resources.
-- [ ] Student uses the actual `resources_create_or_update` MCP tool and reviews the separate approval control; only the intended Service `targetPort` is changed.
+- [ ] Lightspeed compares only `Service/mongodb-nationalparks` and
+      `Deployment/mongodb-nationalparks` with `resources_get`; the student
+      identifies the 27018/27017 port mismatch without changing anything.
+- [ ] If the real MCP approval control is demonstrated before class, the student reviews and approves the narrowly scoped `resources_create_or_update` Service change. If not, students use manual repair rather than ungated AI writes.
 - [ ] If MCP execution/approval fails, the manual console/CLI fallback restores `targetPort: 27017`, and the instructor records that distinction.
 - [ ] Capture the actual Lightspeed MCP approval request and before/after Service state (new image reference required once validated).
 - [ ] Data loads **once** after repair, `/ws/data/all` returns records and
@@ -105,5 +108,5 @@ replace those illustrative screenshots.
 - [ ] Screenshots are authentic, legible and match current OpenShift 5 UI.
 - [x] S07–S07b document the earlier read-only diagnosis and manual fallback; they **do not** prove MCP write approval.
 - [ ] An authentic screenshot demonstrates the live tool-approval UI (no simulated or reconstructed approval image).
-- [ ] A fresh student completes the approved MCP repair (or documented fallback), loads data and verifies the working map.
+- [ ] A fresh student completes a *verified* Service repair (with separately verified approval if MCP is used), loads data and confirms the working map.
 - [ ] Two students independently finish in 45 minutes or the timing is revised.
