@@ -3,7 +3,7 @@
 
 Work through the responsibilities of a platform engineer: establish an application baseline, understand GitOps, apply tenant and resource controls, investigate an incident, and deliver a verified fix.
 
-Module 1 is *Mission National Parks*: a 25–30-minute console-first workshop (28-minute guided path). Students deploy the frontend, Python API and working MongoDB 8, encounter an incorrect MongoDB Service target port. Lightspeed 2.0.1 diagnoses the connection failure and, with student approval through MCP, repairs one Service field. Students independently verify the change, load data and confirm the map; a manual fallback remains available.
+Module 1 is *Mission National Parks*: a 25–30-minute console-first workshop (28-minute guided path). Students deploy the frontend, Python API and working MongoDB 8, encounter an incorrect MongoDB Service target port. Lightspeed 2.0.1 diagnoses the failure with a short, focused question. Students ask for a one-field MCP repair, approve it only when the real tool-approval control appears, and independently verify the Service. If approval is unavailable, they repair that field in the console before loading data and checking the map.
 
 The workshop is designed for up to 30 participants on a shared OpenShift cluster. Each participant uses an assigned identity and application namespace.
 
@@ -39,7 +39,7 @@ This workshop *targets* OpenShift *{ocp_version}* and OpenShift Lightspeed *2.0.
 * Create a MongoDB Secret with your own passwords in your assigned project.
 * Import a working MongoDB 8 Deployment, bootstrap ConfigMap and internal Service through the console YAML editor.
 * Connect the backend to your Secret and observe the deliberately incorrect MongoDB Service target port.
-* Use Lightspeed Troubleshooting to diagnose the MongoDB connection failure, inspect and approve an MCP Service-port repair, and verify the result before loading park data.
+* Ask Lightspeed two short questions: find the MongoDB Service port mismatch, then propose its repair. Approve an MCP change only if the real approval control appears; otherwise use the console repair. Verify the live Service before loading data.
 * Complete a workload-readiness card and continue into GitOps onboarding.
 
 This module deliberately distinguishes new OpenShift 5 appearance/MCP capabilities from long-standing Deployments, Routes, Builds, YAML import and GitOps.
@@ -52,7 +52,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 
 | xref:module-01-whats-new-in-ocp5.adoc[1 — Mission National Parks]
 | 25–30 min (rehearsal target)
-| Native console deployment: frontend, Git backend, student-created Secret, working MongoDB 8, broken MongoDB Service target port and an approved Lightspeed MCP repair (manual fallback available).
+| Native console deployment: frontend, Git backend, student-created Secret, MongoDB Service-port fault, focused Lightspeed diagnosis and verified repair (approval-gated MCP write only when the control works).
 | Console deployment draft; test images/builds and recapture screenshots
 
 | xref:module-02-gitops-onboarding-multitenancy.adoc[2 — GitOps: National Parks Full Stack]
@@ -76,7 +76,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | Fully separate incident; source-controlled recovery without editing National Parks or cluster-wide settings
 |===
 
-*Planned full workshop: approximately 3 hours 5 minutes (pending live rehearsal of AgenticRuns and WeatherNow Modules 4–5).* Module 1 targets 28 guided minutes, allowing up to 30 minutes in a preflighted student environment. Registry pulls, Git builds, student Secret creation, discovery RBAC, the deliberate MongoDB Service port fault, Lightspeed 2.0.1 MCP reads/writes, approval handling and the scoped console fallback must be rehearsed to meet this timing. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 now deploys an independent, full National Parks stack to each student's -gitops namespace with automatic reconciliation; Module 1 remains unchanged in -demo. Module 3 uses a deliberately incorrect GitOps-managed ParksMap readiness port to demonstrate why Synced does not imply Healthy, followed by evidence-backed Lightspeed and optional analysis-only AgenticRun investigation; it ends with both stacks healthy again.
+*Planned full workshop: approximately 3 hours 5 minutes (pending live rehearsal of AgenticRuns and WeatherNow Modules 4–5).* Module 1 targets 28 guided minutes, allowing up to 30 minutes in a preflighted student environment. Registry pulls, Git builds, student Secret creation, discovery RBAC, the deliberate MongoDB Service port fault, Lightspeed 2.0.1 focused MCP reads, genuine approval gating if MCP writes are enabled, and the scoped console recovery must be rehearsed to meet this timing. The former scaling and ingress-controller inspection exercises are outside this timebox. Module 2 now deploys an independent, full National Parks stack to each student's -gitops namespace with automatic reconciliation; Module 1 remains unchanged in -demo. Module 3 uses a deliberately incorrect GitOps-managed ParksMap readiness port to demonstrate why Synced does not imply Healthy, followed by evidence-backed Lightspeed and optional analysis-only AgenticRun investigation; it ends with both stacks healthy again.
 
 == Release Topics Connected to the Application
 
@@ -85,7 +85,7 @@ This module deliberately distinguishes new OpenShift 5 appearance/MCP capabiliti
 | Topic | Workshop connection
 | Project Felt console design | Experience the updated OpenShift 5 visual style while using familiar navigation. In Module 2, the GitOps console plug-in is required; console appearance themes may be explored when available.
 | Kubernetes and runtime foundation | Compare the actual platform release with the documented Kubernetes 1.36 / CRI-O foundation for OpenShift 5.0.
-| MCP server — GA in 5.0 | Use Lightspeed 2.0.1 Troubleshooting to inspect MongoDB resources, submit a one-field Service repair through `resources_create_or_update`, approve the MCP tool call and verify the result.
+| MCP server — GA in 5.0 | Ask Lightspeed to compare the MongoDB Service and Deployment. If real tool approval is available, propose and approve a one-field `resources_create_or_update` repair; otherwise make the console edit and verify the result.
 | HAProxy version selection | Check normal ingress behaviour and identify the serving router's `status.effectiveHAProxyVersion`: 3.2 by default, or the supported 2.8 migration option.
 | Mirrored image credentials — GA | Inspect application image references and explain the administrator-configured project-scoped credential path for mirrors.
 | Agentic update assessment — Technology Preview | An optional instructor demonstration uses the Lightspeed-driven Cluster Update page. The Agentic Operator is a separate prerequisite.
@@ -104,7 +104,7 @@ Unified console navigation predates OpenShift 5. The core Module 1 exercise uses
 | Assigned workshop project | `{user}-demo` — an existing project which may already host Argo CD, Gitea and Showroom. No National Parks workloads should exist yet. The instructor must verify Secret-creation and discovery permissions in this exact namespace.
 | National Parks | **Not pre-deployed.** The instructor prepares namespace-scoped discovery RBAC and validates the frontend image, Python source builder, MongoDB image and students' permission to create Secrets. **Students create their own database Secret**, deploy the three components and initialize disposable data.
 | Application grouping | Workload and pod labels identify the three National Parks components together.
-| AI integration | Lightspeed Operator 2.0.1+ with MCP read/write tools and `tool_annotations` approval. Approved `resources_create_or_update` is the main Service repair; manual console patch is fallback only. Keep the safety guardrail enabled.
+| AI integration | Lightspeed Operator 2.0.1+ with focused MCP reads. Only use MCP writes when a separate tool approval is confirmed; otherwise manual console repair is required. Keep the safety guardrail enabled.
 | Observability | Permission to inspect application logs and workload status; additional metrics are used in later modules.
 | GitOps | Tenant bootstrap imports an editable `openshift-5-container` copy into each student's Gitea. Module 2 creates an auto-syncing Argo CD Application from the root Kustomization, deploying MongoDB, Python API, ParksMap and their support resources into a separate -gitops namespace.
 |===
@@ -127,7 +127,7 @@ oc login --server={openshift_api_url} --username={user} --password='{password}' 
 oc whoami
 ----
 
-Module 1 starts in `{user}-demo`. Students deploy the frontend, Python backend and working MongoDB 8, investigate the preconfigured MongoDB port fault with Lightspeed, approve the scoped MCP Service repair (or document a manual fallback), then load park data once.
+Module 1 starts in `{user}-demo`. Students deploy the frontend, Python backend and MongoDB 8, use a short Lightspeed prompt to identify the preconfigured Service-port fault, request a narrowly scoped repair, verify the change (and real approval, if used), then load park data once.
 
 == Reference Material
 
