@@ -328,14 +328,23 @@ image::module01-s09k-lightspeed-mode.png[Select Lightspeed Troubleshooting, widt
 +
 [source,text,subs="attributes+"]
 ----
-My National Parks application cannot retrieve park data.
+In namespace {user}-demo, use resources_get to inspect only these two resources:
+1. Service/mongodb-nationalparks
+2. Deployment/mongodb-nationalparks
 
-Use live Kubernetes tools to inspect Pods, Services and logs
-in namespace {user}-demo. Find the cause and suggest the simplest fix.
+Compare the Service spec.ports[0].targetPort against the MongoDB
+containerPort. Report whether the Service is forwarding to the correct port
+and identify the smallest necessary fix.
 
-Do not read Secrets or change anything.
+Do not list other Pods or Services. Do not inspect Secrets, execute shell
+commands, or change anything.
 ----
-. Review the response. Lightspeed should identify the MongoDB Service port mismatch using live evidence. Do not accept an unrelated explanation based only on Pod restarts or log connection churn. Do not make any change in Mission 4.
+. Review the response. Lightspeed should identify the MongoDB Service port mismatch using live Service and Deployment evidence. Do not accept an unrelated explanation based only on Pod restarts or log connection churn. Do not make any change in Mission 4.
++
+[NOTE]
+====
+This deliberately narrow two-resource query was verified with student `user-clcvz-demo` on 19 November 2026. The earlier broad prompt for Pods, Services and logs repeatedly caused a Qwen3 tool-result safety inspection to reject one result as `data_exfiltration`, while the focused `resources_get` query successfully diagnosed `27018` versus `27017`. A safety alert does *not* mean the Service port is fixed or that a write was attempted. If this focused query also fails, notify the instructor; do not disable the guardrail or widen student RBAC.
+====
 +
 image::module01-s07-lightspeed-root-cause.png[Live Lightspeed 2 diagnosis showing MongoDB Service targetPort 27018 versus Pod containerPort 27017, width=900]
 
