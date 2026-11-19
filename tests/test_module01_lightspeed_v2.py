@@ -1,4 +1,4 @@
-"""Module 1: test scoped, approved MCP repair of an incorrect MongoDB targetPort."""
+"""Module 1: test focused diagnosis, short prompts and approval-gated MongoDB repair."""
 import unittest
 from pathlib import Path
 
@@ -12,18 +12,15 @@ class LightspeedWorkshopTests(unittest.TestCase):
         guide = GUIDE.read_text()
         self.assertIn("OpenShift Lightspeed 2.0", guide)
         self.assertIn("Troubleshooting", guide)
-        self.assertIn("Do not inspect Secrets, execute shell", guide)
-        self.assertIn("namespace {user}-demo", guide)
-        self.assertIn("use resources_get to inspect only these two resources", guide)
-        self.assertIn("Do not list other Pods or Services.", guide)
-        self.assertIn("Service/mongodb-nationalparks", guide)
-        self.assertIn("Deployment/mongodb-nationalparks", guide)
-        self.assertIn("user-clcvz-demo", guide)
+        self.assertIn("My National Parks app cannot load park data.", guide)
+        self.assertIn("In {user}-demo, compare only the mongodb-nationalparks Service and Deployment", guide)
+        self.assertIn("using resources_get. What's wrong? Don't change anything.", guide)
+        self.assertNotIn("user-clcvz-demo", guide)  # avoid hard-coded student namespace
 
     def test_fault_is_mongodb_target_port(self):
         guide = GUIDE.read_text()
         manifest = MANIFEST.read_text()
-        self.assertIn("== Mission 5: Approve and verify Lightspeed's MongoDB Service repair", guide)
+        self.assertIn("== Mission 5: Repair MongoDB with Lightspeed", guide)
         self.assertIn("targetPort: 27017", guide)
         self.assertIn("targetPort: 27018", manifest)
         self.assertIn("port: 27017", manifest)
@@ -47,24 +44,27 @@ class LightspeedWorkshopTests(unittest.TestCase):
         self.assertIn('"path":"/spec/ports/0/targetPort","value":27017', guide)
         self.assertIn("Live Lightspeed 2 diagnosis", guide)
 
-    def test_mcp_write_is_primary_and_human_approval_explicit(self):
+    def test_concise_prompts_and_independent_approval_verification(self):
         guide = GUIDE.read_text()
         index = (ROOT / "content/modules/ROOT/pages/index.adoc").read_text()
         preflight = (ROOT / "docs/instructor/module-01-deployment-preflight.md").read_text()
+        # The prompt blocks should be short enough for students to follow.
+        diagnosis = guide.split("My National Parks app cannot load park data.", 1)[1].split("----", 1)[0]
+        repair = guide.split("Fix only the mongodb-nationalparks Service in {user}-demo:", 1)[1].split("----", 1)[0]
+        self.assertLessEqual(len(diagnosis.strip().splitlines()), 3)
+        self.assertLessEqual(len(repair.strip().splitlines()), 4)
+        self.assertIn("Show me the actual tool approval before making the change.", guide)
+        self.assertIn("If approval is unavailable, stop.", guide)
         self.assertIn("resources_create_or_update", guide)
-        self.assertIn("actual MCP tool-approval workflow", guide)
-        self.assertIn("not the named value", guide)
-        self.assertIn("numeric value 27017", guide)
-        self.assertIn("Keep all existing Service metadata", guide)
-        self.assertIn("Do not modify Secrets, Deployments", guide)
-        self.assertIn("approval interface", guide)
-        self.assertIn("Manual recovery fallback (only if the approved MCP path fails)", guide)
+        self.assertIn("A verified `27017 -> 27017` means the Service was repaired.", guide)
+        self.assertIn("If the Service changed **without", guide)
+        self.assertIn("Manual repair if approval is unavailable", guide)
         self.assertIn("oc auth can-i patch services", guide)
         self.assertIn("oc auth can-i update services", guide)
-        self.assertIn("manual fallback", index)
-        self.assertIn("19 November 2026", preflight)
-        self.assertIn("The copied conversation did not include a visible", preflight)
-        self.assertNotIn("MCP write tools are not required.", guide)
+        self.assertIn("manual", index)
+        self.assertIn("approval.requested", preflight)
+        self.assertIn("user-clcvz-demo", preflight)
+        self.assertIn("does not prove that human", preflight)
 
     def test_load_only_after_port_repair(self):
         guide = GUIDE.read_text()
