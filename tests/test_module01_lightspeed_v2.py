@@ -50,11 +50,11 @@ class LightspeedWorkshopTests(unittest.TestCase):
         preflight = (ROOT / "docs/instructor/module-01-deployment-preflight.md").read_text()
         # The prompt blocks should be short enough for students to follow.
         diagnosis = guide.split("My National Parks app cannot load park data.", 1)[1].split("----", 1)[0]
-        repair = guide.split("Fix only the mongodb-nationalparks Service in {user}-demo:", 1)[1].split("----", 1)[0]
+        repair = guide.split("Use resources_create_or_update to fix only the mongodb-nationalparks", 1)[1].split("----", 1)[0]
         self.assertLessEqual(len(diagnosis.strip().splitlines()), 3)
         self.assertLessEqual(len(repair.strip().splitlines()), 4)
-        self.assertIn("Show me the actual tool approval before making the change.", guide)
-        self.assertIn("If approval is unavailable, stop.", guide)
+        self.assertIn("Submit the tool call for my approval. Don't bypass approval.", guide)
+        self.assertIn("If Lightspeed only asks you to type `APPROVE` in chat", guide)
         self.assertIn("resources_create_or_update", guide)
         self.assertIn("A verified `27017 -> 27017` means the Service was repaired.", guide)
         self.assertIn("If the Service changed **without", guide)
@@ -64,7 +64,7 @@ class LightspeedWorkshopTests(unittest.TestCase):
         self.assertIn("manual", index)
         self.assertIn("approval.requested", preflight)
         self.assertIn("user-clcvz-demo", preflight)
-        self.assertIn("does not prove that human", preflight)
+        self.assertIn("decision=approved", preflight)
 
     def test_load_only_after_port_repair(self):
         guide = GUIDE.read_text()
