@@ -136,7 +136,9 @@ Instructor acceptance criteria:
 5. If Lightspeed says approval is unavailable, **do not instruct it to proceed
    anyway**. If the Service changes despite the student never approving a
    tool request, record this as an unresolved approval-flow issue, stop
-   further AI writes for the class, and investigate audit evidence.
+   further AI writes for the class, and investigate audit evidence. Use
+   supported administrator-managed controls to restrict MCP write exposure
+   until approval is verified; *prompts are not an access-control boundary*.
 6. Use the console *Networking* → *Services* → `mongodb-nationalparks` →
    *YAML* → *Edit* to set only the target port, or use the scoped student
    fallback:
