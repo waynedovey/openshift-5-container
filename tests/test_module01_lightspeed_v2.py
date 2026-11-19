@@ -12,9 +12,13 @@ class LightspeedWorkshopTests(unittest.TestCase):
         guide = GUIDE.read_text()
         self.assertIn("OpenShift Lightspeed 2.0", guide)
         self.assertIn("Troubleshooting", guide)
-        self.assertIn("Do not read Secrets or change anything.", guide)
+        self.assertIn("Do not inspect Secrets, execute shell", guide)
         self.assertIn("namespace {user}-demo", guide)
-        self.assertIn("inspect Pods, Services and logs", guide)
+        self.assertIn("use resources_get to inspect only these two resources", guide)
+        self.assertIn("Do not list other Pods or Services.", guide)
+        self.assertIn("Service/mongodb-nationalparks", guide)
+        self.assertIn("Deployment/mongodb-nationalparks", guide)
+        self.assertIn("user-clcvz-demo", guide)
 
     def test_fault_is_mongodb_target_port(self):
         guide = GUIDE.read_text()
