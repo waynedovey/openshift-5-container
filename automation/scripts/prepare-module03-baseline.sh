@@ -5,7 +5,7 @@
 set -euo pipefail
 
 PROGRAM="${0##*/}"
-SOURCE_URL="${SOURCE_URL:-https://github.com/rhpds/openshift-5-container.git}"
+SOURCE_URL="${SOURCE_URL:-https://github.com/rhpds/openshift-5-container-workspace.git}"
 SOURCE_REF="${SOURCE_REF:-main}"
 SYNC_GITEA=false
 RESUME_DEMO=false
@@ -257,15 +257,27 @@ find_gitea_url() {
     *) GITEA_BASE="https://$route" ;;
   esac
   # No credentials are added to a remote URL.
-  GITEA_REPO="$GITEA_BASE/$STUDENT/openshift-5-container.git"
+  GITEA_REPO="$GITEA_BASE/$STUDENT/openshift-5-container-workspace.git"
 }
 
 sync_or_verify_gitea() {
   local file count=0 checkout="$WORKDIR/student-gitea"
   find_gitea_url
   log "Checking public student Gitea main: $GITEA_REPO"
-  git -c credential.helper= clone --quiet --branch main --single-branch -- \
-    "$GITEA_REPO" "$checkout" || die 'Cannot clone student Gitea repository. Verify it exists and is public.'
+  # Check the public API first so a missing imported repository never prompts
+  # students for credentials (the one-time Gitea migration may have been skipped).
+  local api_code
+  api_code="$(curl --silent --show-error --connect-timeout 10 --max-time 30 \
+    --output /dev/null --write-out '%{http_code}' \
+    "$GITEA_BASE/api/v1/repos/$STUDENT/openshift-5-container-workspace")" \
+    || die "Cannot contact student Gitea API; check its Route and connectivity."
+  case "$api_code" in
+    200) ;;
+    404) die "Missing student repository $STUDENT/openshift-5-container-workspace. Instructor: run bash automation/scripts/reconcile-gitea-repositories.sh -n $DEMO_NS (dry run), then --apply after confirming the Gitea CR lists the workspace. This is a provisioning problem, not a Git password problem." ;;
+    *) die "Gitea API returned HTTP $api_code; inspect repository permissions and provisioning." ;;
+  esac
+  GIT_TERMINAL_PROMPT=0 git -c credential.helper= clone --quiet --branch main --single-branch -- \
+    "$GITEA_REPO" "$checkout" || die "Public Gitea repository exists but main cannot be cloned. Check Git service and default branch."
   for file in "${SOURCE_FILES[@]}"; do
     # Module 2 deliberately lets students personalize this ConfigMap; its
     # content need not match, but the file must exist and be nonempty.
