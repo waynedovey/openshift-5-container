@@ -4,10 +4,11 @@ Students deploy the National Parks frontend, Python API and MongoDB 8.
 **Intentional fault:** MongoDB listens on port `27017`, but its Service
 forwards to `targetPort: 27018`. The MongoDB Pod can be Ready while the API
 cannot connect. Students use OpenShift Lightspeed 2.0.1+ Troubleshooting to diagnose the
-fault with one short, focused question. If the actual approval control is
-working, they can approve a narrowly scoped AI Service repair. Otherwise
-they must use the one-field manual recovery. An updated Service alone does
-**not** establish that human approval was obtained.
+fault with one short, focused question. Backend logs verify that MCP
+approval requests and approved decisions can occur, but the student must
+still inspect and approve the proposed change in the console. If no real
+approval control appears, they must use the one-field manual recovery.
+An updated Service alone does **not** establish that a person approved it.
 
 ## Target delivery time
 
@@ -106,10 +107,10 @@ the MongoDB container exposes a port named `mongodb` on `27017`.
 Student prompt:
 
 ```text
-Fix only the mongodb-nationalparks Service in {user}-demo:
-set its targetPort to the number 27017 and leave everything else unchanged.
-Show me the actual tool approval before making the change.
-If approval is unavailable, stop. Verify the port afterwards.
+Use resources_create_or_update to fix only the mongodb-nationalparks
+Service in {user}-demo: set targetPort to 27017; keep all else unchanged.
+Submit the tool call for my approval. Don't bypass approval.
+Verify the Service after the approved change.
 ```
 
 Instructor acceptance criteria:
@@ -189,12 +190,26 @@ Secrets or Deployments, disable guardrails, or modify Argo CD/Gitea resources.
 - **19 November 2026**, `user-clcvz-demo`: broad troubleshooting returned
   `data_exfiltration` tool-result safety alerts, while the focused
   Service/Deployment read successfully diagnosed `27018` versus `27017`.
-  In a later attempt, Lightspeed explicitly said it could not trigger an
-  approval workflow, then claimed it had updated the Service; student CLI
-  checks first showed `27017 -> 27018` and later `27017 -> 27017`.
-  **The change occurred, but the transcript does not prove that human
-  approval happened, or independently establish which actor made the change.**
-  Treat this as an unresolved approval-flow issue, not a completed HITL test.
+  In the longer repair request at **01:30:30 UTC**, the **backend really
+  emitted** an `approval_required` SSE event for
+  `resources_create_or_update` with `destructiveHint: true` and a full
+  `Service/mongodb-nationalparks` manifest containing `targetPort: 27017`.
+  The same tool call's audit span recorded `approval.requested` followed
+  by `approval.decision` with **`decision=approved`** at **01:30:32 UTC**,
+  before the MCP `tools/call` request. MCP then reported successful
+  Service update, `kubernetes-mcp-server` as a managedFields manager,
+  and the correct target port. **This confirms the backend approval gate
+  ran and received an approved decision.**
+  The available trace does not establish whether the user visibly clicked
+  Approve, or which client-side interaction supplied the authenticated
+  approval decision. Inspect the console UI and decision endpoint before
+  calling this an independently validated *human* approval.
+  In a separate later short-prompt attempt at **01:41 UTC**, the model
+  replied with a textual request to type `APPROVE` instead of invoking
+  the tool. That was a **model tool-selection failure**, not proof that
+  backend tool approval is unavailable. The shorter student repair prompt
+  now explicitly names `resources_create_or_update` to encourage the
+  real tool call; this still requires a fresh UI rehearsal.
 
 Before class, rehearse with two fresh student accounts, verify what appears
 in the actual console, and capture a genuine approval screenshot only when
