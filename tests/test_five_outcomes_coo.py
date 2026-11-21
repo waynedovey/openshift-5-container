@@ -38,6 +38,13 @@ class FiveOutcomeTests(unittest.TestCase):
         self.assertIn("same-student cross-namespace", text)
         self.assertIn("cross-student", text)
 
+    def test_weather_module_points_to_real_workspace(self):
+        guide = MODULE4.read_text()
+        self.assertIn("openshift-5-container-workspace → main", guide)
+        self.assertNotIn("your student account → openshift-5-container → main", guide)
+        self.assertIn("measure National Parks workload usage", guide)
+        self.assertNotIn("Module 3 taught you to investigate the National Parks frontend and restore its readiness", guide)
+
     def test_workload_and_incident_not_repeated(self):
         m3, m4 = MODULE3.read_text(), MODULE4.read_text()
         self.assertNotIn("port: 18080", m3)
