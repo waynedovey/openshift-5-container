@@ -16,7 +16,7 @@ oc whoami
 Verify that +oc whoami+ returns {user}. This is a disposable lab environment: the + -p + option can expose your password in shell history and process listings. Do not reuse this password on a personal or production cluster.
 
 
-Module 3 taught you to investigate the National Parks frontend and restore its readiness through Gitea. In Modules 4 and 5 we use a *much smaller, independent workload*:
+Module 3 taught you to measure National Parks workload usage, assess quota headroom, and make or justify a safe GitOps resource-sizing decision. In Modules 4 and 5 we use a *much smaller, independent workload*:
 +quay.io/openshift-workshop-applications/weathernow:latest+.
 
 WeatherNow is a simple HTTP web application listening on port 8080. It has *no MongoDB, PVC, image build, credentials or background seed Job*. Your existing National Parks applications remain untouched.
@@ -96,7 +96,7 @@ image::module04-s03-weather-healthy-baseline.svg[S03: healthy WeatherNow GitOps 
 
 A new deployment revision is released with a readiness probe aimed at the wrong port. The old version may continue serving HTTP 200 because Kubernetes keeps the previous ready Pod during RollingUpdate.
 
-. Open *Gitea*, sign in as `{user}` with password `{password}` if prompted, then open *your student account → openshift-5-container → main*. Open:
+. Open *Gitea*, sign in as `{user}` with password `{password}` if prompted, then open *your student account → openshift-5-container-workspace → main*. Open:
 +
 [source,text,role=copypaste]
 ----
